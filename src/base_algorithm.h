@@ -12,7 +12,7 @@
 namespace cv
 {
     struct Rect {
-        float x, y, width, height;
+        int x, y, width, height;
     };
 }
 #endif
