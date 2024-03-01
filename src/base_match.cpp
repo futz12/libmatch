@@ -8,7 +8,6 @@
 #include "base_algorithm.h"
 #include "base_match.h"
 
-
 namespace libmatch {
     template_matcher::template_matcher(uint8_t *target_img_data,int target_img_size, uint32_t mode)
     {
@@ -18,27 +17,29 @@ namespace libmatch {
             target_mat = cv::imdecode(target_img_arr, cv::IMREAD_GRAYSCALE);
             READ_OVER();
         }
-        else if((mode & COLOR_MASK) == COLOR_BGRA)
+        else if((mode & COLOR_MASK) == COLOR_BGRA || (mode & COLOR_MASK) == COLOR_BGRA_COLOR)
         {
             target_mat = cv::imdecode(target_img_arr, cv::IMREAD_UNCHANGED);
             READ_OVER();
+            if(target_mat.channels() != 4)
+            {
+                fprintf(stderr,"[Match] Err target_img is not BGRA");
+                return;
+            }
             cv::Mat bgr[4];
             cv::split(target_mat, bgr);
             mask_mat = bgr[3];
             // 归一化 mask_mat (0 - 1)
             mask_mat.convertTo(mask_mat, CV_32FC1, 1.0 / 255);
-
-            cv::cvtColor(target_mat,target_mat, cv::COLOR_BGRA2GRAY);
+            if ((mode & COLOR_MASK) == COLOR_BGRA)
+                cv::cvtColor(target_mat,target_mat, cv::COLOR_BGRA2GRAY);
+            else
+                cv::cvtColor(target_mat,target_mat, cv::COLOR_BGRA2BGR);
         }
-        else if((mode & COLOR_MASK) == COLOR_HSV)
+        else if((mode & COLOR_MASK) == COLOR_BGR)
         {
             target_mat = cv::imdecode(target_img_arr, cv::IMREAD_COLOR);
             READ_OVER();
-            cv::cvtColor(target_mat, target_mat, cv::COLOR_BGR2HSV);
-            // 分离色相
-            cv::Mat hsv[3];
-            cv::split(target_mat, hsv);
-            target_mat = hsv[0];
         }
         else
         {
@@ -61,15 +62,10 @@ namespace libmatch {
             src_mat = cv::imdecode(src_img_arr, cv::IMREAD_GRAYSCALE);
             READ_OVER_SRC();
         }
-        else if((_mode & COLOR_MASK) == COLOR_HSV)
+        else if((_mode & COLOR_MASK) == COLOR_BGR || (_mode & COLOR_MASK) == COLOR_BGRA_COLOR)
         {
             src_mat = cv::imdecode(src_img_arr, cv::IMREAD_COLOR);
             READ_OVER_SRC();
-            cv::cvtColor(src_mat, src_mat, cv::COLOR_BGR2HSV);
-            // 分离色相
-            cv::Mat hsv[3];
-            cv::split(src_mat, hsv);
-            src_mat = hsv[0];
         }
 
         // 判断大小是否合法
@@ -80,21 +76,13 @@ namespace libmatch {
         }
         cv::Mat result(src_mat.cols - target_mat.cols + 1, src_mat.rows - target_mat.rows + 1, CV_32FC1);
 
-        if((_mode & COLOR_MASK) == COLOR_BGRA)
+        if((_mode & COLOR_MASK) == COLOR_BGRA || (_mode & COLOR_MASK) == COLOR_BGRA_COLOR)
         {
-            cv::Mat alpha_channel;
-            if (src_mat.channels() == 4)
-            {
-                cv::Mat bgr[4];
-                cv::split(src_mat, bgr);
-                alpha_channel = bgr[3];
-            }
-            src_mat = cv::imdecode(src_mat, cv::IMREAD_GRAYSCALE);
-            cv::matchTemplate(src_mat, target_mat, result, cv::TM_CCORR_NORMED, alpha_channel);
+            cv::matchTemplate(src_mat, target_mat, result, cv::TM_CCOEFF_NORMED, mask_mat);
         }
         else
         {
-            cv::matchTemplate(src_mat, target_mat, result, cv::TM_CCORR_NORMED);
+            cv::matchTemplate(src_mat, target_mat, result, cv::TM_CCOEFF_NORMED);
         }
 
 
@@ -108,8 +96,8 @@ namespace libmatch {
                 if (prob > prob_threshold)
                 {
                     objectEx proposal;
-                    proposal.rect.x = i;
-                    proposal.rect.y = j;
+                    proposal.rect.x = j;
+                    proposal.rect.y = i;
                     proposal.rect.width = target_mat.cols;
                     proposal.rect.height = target_mat.rows;
                     proposal.prob = prob;
@@ -142,6 +130,8 @@ namespace libmatch {
         orb->compute(target_mat, target_kps, target_desc);
 
         _mode = mode;
+        target_img_width = target_mat.cols;
+        target_img_height = target_mat.rows;
     }
 
     bool orb_matcher::compute(uint8_t *src_img_data, int src_img_size, int n_features, int max_distance, objectEx2 *res){
@@ -180,16 +170,16 @@ namespace libmatch {
             return false;
         }
 
-        cv::Mat T = cv::getPerspectiveTransform(good_src_kps, good_target_kps);
+        cv::Mat H = Findhomography(good_target_kps,good_src_kps);
 
         std::vector<cv::Point2f> obj_corners(4);
         obj_corners[0] = cv::Point2f(0, 0);
-        obj_corners[1] = cv::Point2f((float) src_mat.cols, 0);
-        obj_corners[2] = cv::Point2f((float) src_mat.cols, (float) src_mat.rows);
-        obj_corners[3] = cv::Point2f(0, (float) src_mat.rows);
+        obj_corners[1] = cv::Point2f((float) target_img_width, 0);
+        obj_corners[2] = cv::Point2f((float) target_img_width, (float) target_img_height);
+        obj_corners[3] = cv::Point2f(0, (float) target_img_height);
 
         std::vector<cv::Point2f> scene_corners(4);
-        cv::perspectiveTransform(obj_corners, scene_corners, T);
+        cv::perspectiveTransform(obj_corners, scene_corners, H);
 
         for (int i = 0; i < 4; i++) {
             res->dots[i].x = scene_corners[i].x;

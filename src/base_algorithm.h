@@ -34,6 +34,7 @@ namespace libmatch {
 #ifdef LIBMATCH_EXPORTS
     inline float intersection_area(const objectEx &a, const objectEx &b);
     void nms_sorted_bboxes(const std::vector<objectEx> &objects, std::vector<int> &picked, float nms_threshold);
+    cv::Mat Findhomography(std::vector<cv::Point2f> src, std::vector<cv::Point2f> target);
 #endif
 } // libmatch
 

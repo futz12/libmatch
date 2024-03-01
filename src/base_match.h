@@ -16,9 +16,10 @@ namespace libmatch {
 
 #define COLOR_MASK        0x0000000F
 
-#define COLOR_GRAY        0x00000000
-#define COLOR_BGRA        0x00000001
-#define COLOR_HSV         0x00000002
+#define COLOR_GRAY         0x00000000
+#define COLOR_BGRA         0x00000001
+#define COLOR_BGR          0x00000002
+#define COLOR_BGRA_COLOR   0x00000003 // 真彩模式
 
 #define READ_OVER() if (target_mat.empty()) {fprintf(stderr,"[Match] Err Can`t Read Image");return ;}
 #define READ_OVER_SRC() if (src_mat.empty()) {fprintf(stderr,"[Match] Err Can`t Read Image");return {};}
@@ -41,6 +42,9 @@ namespace libmatch {
         uint32_t _mode;
         std::vector<cv::KeyPoint> target_kps;
         cv::Mat target_desc;
+
+        int target_img_width;
+        int target_img_height;
 
     public:
         orb_matcher(uint8_t *target_img_data, int target_img_size, int n_features, uint32_t mode);
