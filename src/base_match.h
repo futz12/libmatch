@@ -5,11 +5,6 @@
 #ifndef LIBMATCH_BASE_MATCH_H
 #define LIBMATCH_BASE_MATCH_H
 
-#ifdef LIBMATCH_EXPORTS
-#define LIBMATCH_API __declspec(dllexport)
-#else
-#define LIBMATCH_API extern __declspec(dllimport)
-#endif
 
 namespace libmatch {
 
@@ -24,7 +19,7 @@ namespace libmatch {
 #define READ_OVER() if (target_mat.empty()) {fprintf(stderr,"[Match] Err Can`t Read Image");return ;}
 #define READ_OVER_SRC() if (src_mat.empty()) {fprintf(stderr,"[Match] Err Can`t Read Image");return {};}
 
-    class LIBMATCH_API template_matcher {
+    class template_matcher {
     private:
         cv::Mat target_mat;
         cv::Mat mask_mat;
@@ -37,7 +32,7 @@ namespace libmatch {
         compute(uint8_t *src_img_data, int src_img_size, float prob_threshold, float nms_threshold);
     }; // 模板匹配匹配子
 
-    class LIBMATCH_API orb_matcher {
+    class orb_matcher {
     private:
         uint32_t _mode;
         std::vector<cv::KeyPoint> target_kps;

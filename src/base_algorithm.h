@@ -5,17 +5,6 @@
 #ifndef LIBMATCH_BASE_ALGORITHM_H
 #define LIBMATCH_BASE_ALGORITHM_H
 
-#ifdef LIBMATCH_EXPORTS
-#define LIBMATCH_API __declspec(dllexport)
-#else
-#define LIBMATCH_API extern __declspec(dllimport)
-namespace cv
-{
-    struct Rect {
-        int x, y, width, height;
-    };
-}
-#endif
 
 #include <vector>
 #include <cstdint>

@@ -42,7 +42,6 @@ namespace libmatch {
         }
     }
 
-
     // 对OpenCV的findHomography的重写，利用SVD求解
     cv::Mat Findhomography(std::vector<cv::Point2f> src, std::vector<cv::Point2f> target) {
         // 求解系统为 A*X - B = 0

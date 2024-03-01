@@ -9,8 +9,15 @@
 #define LIBMATCH_C_API extern "C" __declspec(dllexport)
 #else
 #define LIBMATCH_C_API extern "C" __declspec(dllimport)
+#endif
+
+#include <stdint.h>
+
 struct Rect {
     float x, y, width, height;
+};
+struct Point {
+    int x, y;
 };
 struct objectEx {
     Rect rect;
@@ -21,9 +28,13 @@ struct objectEx2 {
         float x, y;
     } dots[4];
 };
-#endif
-
-#include <stdint.h>
+struct TextBox {
+    Point boxPoint[4];
+    float score;
+    char *text;
+    int size_charPositions;
+    int *charPositions;
+};
 
 LIBMATCH_C_API void* create_template_matcher(uint8_t *target_img_data, int target_img_size, uint32_t mode);
 
