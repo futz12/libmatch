@@ -1,0 +1,61 @@
+{
+  "name": "Yolov7",
+  "version": "1.0.0",
+  "use_cpu_thread": 4,
+  "use_gpu": false,
+  "gpu_device_id": 0,
+  "light_mode": false,
+  "end2end": false,
+  "use_fp16_packed": false,
+  "use_fp16_storage": false,
+  "use_fp16_arithmetic": false,
+  "channels": 3,
+  "width": 640,
+  "height": 640,
+  "pixels_type": 65538,
+  "skip_norm": false,
+  "norm_vals": [0.00392156862745098, 0.00392156862745098, 0.00392156862745098],
+  "skip_mean": true,
+  "mean_vals": [0.0, 0.0, 0.0],
+  "border_value": 114.0,
+  "input_layer": "images",
+  "output_layers": [
+    {
+      "layer": "output",
+      "stride": 8,
+      "anchors": [
+        12.0,
+        16.0,
+        19.0,
+        36.0,
+        40.0,
+        28.0
+      ]
+    },
+    {
+        "layer": "288",
+        "stride": 16,
+        "anchors": [
+            36.0,
+            75.0,
+            76.0,
+            55.0,
+            72.0,
+            146.0
+        ]
+        },
+        {
+        "layer": "302",
+        "stride": 32,
+        "anchors": [
+            142.0,
+            110.0,
+            192.0,
+            243.0,
+            459.0,
+            401.0
+        ]
+    }
+  ],
+  "MAX_STRIDE": 32
+}
