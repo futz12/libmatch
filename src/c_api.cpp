@@ -8,7 +8,8 @@
 #include "base_algorithm.h"
 #include "base_match.h"
 #include "pp_ocr.h"
-
+#include <json.hpp>
+#include "./yolos/yolov57.h"
 
 #include "c_api.h"
 
@@ -116,4 +117,44 @@ LIBMATCH_C_API void release_ppocr_textbox(void* result)
 LIBMATCH_C_API void release_ppocr_result(void* result)
 {
     delete (std::vector<libmatch::TextBox>*)result;
+}
+
+LIBMATCH_C_API void* create_yolo57(uint8_t *bin, int bin_size, char *param, char *config)
+{
+    std::vector<uint8_t> bin_v(bin, bin + bin_size);
+    std::string param_v(param);
+    std::string config_v(config);
+    return new libmatch::yolo57(bin_v, param_v, config_v);
+}
+
+LIBMATCH_C_API void release_yolo57(void* yolo57)
+{
+    delete (libmatch::yolo57*)yolo57;
+}
+
+LIBMATCH_C_API void* yolo57_detect(void* yolo57, uint8_t *src_img_data, int src_img_size,float prob_threshold, float nms_threshold,bool agnostic)
+{
+    return new std::vector<libmatch::object>(((libmatch::yolo57*)yolo57)->detect(src_img_data, src_img_size,
+                                                                                 prob_threshold, nms_threshold, agnostic));
+}
+
+LIBMATCH_C_API size_t yolo57_result_size(void* result)
+{
+    return ((std::vector<libmatch::object>*)result)->size();
+}
+
+LIBMATCH_C_API void yolo57_get_object(void* result, size_t index,void *result_obj)
+{
+    auto& obj = ((std::vector<libmatch::object>*)result)->at(index);
+    memcpy(result_obj, &obj, sizeof(object));
+}
+
+LIBMATCH_C_API void release_yolo57_result(void* result)
+{
+    delete (std::vector<libmatch::object>*)result;
+}
+
+LIBMATCH_C_API void unregister_vulkan()
+{
+    ncnn::destroy_gpu_instance();
 }

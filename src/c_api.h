@@ -14,6 +14,9 @@
 #include <stdint.h>
 
 struct Rect {
+    int x, y, width, height;
+};
+struct RectF {
     float x, y, width, height;
 };
 struct Point {
@@ -34,6 +37,12 @@ struct TextBox {
     char *text;
     int size_charPositions;
     int *charPositions;
+};
+struct object
+{
+    RectF rect;
+    int label;
+    float prob;
 };
 
 LIBMATCH_C_API void* create_template_matcher(uint8_t *target_img_data, int target_img_size, uint32_t mode);

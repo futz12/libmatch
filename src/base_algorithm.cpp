@@ -11,6 +11,12 @@ namespace libmatch {
         cv::Rect_<float> inter = a.rect & b.rect;
         return inter.area();
     }
+    inline float intersection_area(const object &a, const object &b) {
+        cv::Rect_<float> inter = a.rect & b.rect;
+        return inter.area();
+    }
+
+
 
     void nms_sorted_bboxes(const std::vector<objectEx> &objects, std::vector<int> &picked, float nms_threshold) {
         picked.clear();
@@ -41,6 +47,44 @@ namespace libmatch {
 
         }
     }
+
+    void nms_sorted_bboxes(const std::vector<object> &objects, std::vector<int>& picked, float nms_threshold, bool agnostic)
+    {
+        picked.clear();
+
+        const int n = objects.size();
+
+        std::vector<float> areas(n);
+        for (int i = 0; i < n; i++)
+        {
+            areas[i] = objects[i].rect.area();
+        }
+
+        for (int i = 0; i < n; i++)
+        {
+            const object& a = objects[i];
+
+            int keep = 1;
+            for (int j = 0; j < (int)picked.size(); j++)
+            {
+                const object& b = objects[picked[j]];
+
+                if (!agnostic && a.label != b.label)
+                    continue;
+
+                // intersection over union
+                float inter_area = intersection_area(a, b);
+                float union_area = areas[i] + areas[picked[j]] - inter_area;
+                // float IoU = inter_area / union_area
+                if (inter_area / union_area > nms_threshold)
+                    keep = 0;
+            }
+
+            if (keep)
+                picked.push_back(i);
+        }
+    }
+
 
     // 对OpenCV的findHomography的重写，利用SVD求解
     cv::Mat Findhomography(std::vector<cv::Point2f> src, std::vector<cv::Point2f> target) {
