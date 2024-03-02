@@ -9,21 +9,16 @@
 #include "base_match.h"
 
 namespace libmatch {
-    template_matcher::template_matcher(uint8_t *target_img_data,int target_img_size, uint32_t mode)
-    {
+    template_matcher::template_matcher(uint8_t *target_img_data, int target_img_size, uint32_t mode) {
         cv::_InputArray target_img_arr(target_img_data, target_img_size);
-        if((mode & COLOR_MASK) == COLOR_GRAY)
-        {
+        if ((mode & COLOR_MASK) == COLOR_GRAY) {
             target_mat = cv::imdecode(target_img_arr, cv::IMREAD_GRAYSCALE);
             READ_OVER();
-        }
-        else if((mode & COLOR_MASK) == COLOR_BGRA || (mode & COLOR_MASK) == COLOR_BGRA_COLOR)
-        {
+        } else if ((mode & COLOR_MASK) == COLOR_BGRA || (mode & COLOR_MASK) == COLOR_BGRA_COLOR) {
             target_mat = cv::imdecode(target_img_arr, cv::IMREAD_UNCHANGED);
             READ_OVER();
-            if(target_mat.channels() != 4)
-            {
-                fprintf(stderr,"[Match] Err target_img is not BGRA");
+            if (target_mat.channels() != 4) {
+                fprintf(stderr, "[Match] Err target_img is not BGRA");
                 return;
             }
             cv::Mat bgr[4];
@@ -32,69 +27,63 @@ namespace libmatch {
             // 归一化 mask_mat (0 - 1)
             mask_mat.convertTo(mask_mat, CV_32FC1, 1.0 / 255);
             if ((mode & COLOR_MASK) == COLOR_BGRA)
-                cv::cvtColor(target_mat,target_mat, cv::COLOR_BGRA2GRAY);
+                cv::cvtColor(target_mat, target_mat, cv::COLOR_BGRA2GRAY);
             else
-                cv::cvtColor(target_mat,target_mat, cv::COLOR_BGRA2BGR);
-        }
-        else if((mode & COLOR_MASK) == COLOR_BGR)
-        {
+                cv::cvtColor(target_mat, target_mat, cv::COLOR_BGRA2BGR);
+        } else if ((mode & COLOR_MASK) == COLOR_BGR) {
             target_mat = cv::imdecode(target_img_arr, cv::IMREAD_COLOR);
             READ_OVER();
-        }
-        else
-        {
-            fprintf(stderr,"[Match] Err mode");
+        } else {
+            fprintf(stderr, "[Match] Err mode");
             return;
         }
         _mode = mode;
     }
-    std::vector<objectEx> template_matcher::compute(uint8_t *src_img_data,int src_img_size,float prob_threshold,float nms_threshold)
-    {
+
+    std::vector<objectEx>
+    template_matcher::compute(uint8_t *src_img_data, int src_img_size, float prob_threshold, float nms_threshold,
+                              int sx, int sy, int ex, int ey) {
         cv::Mat src_mat;
         cv::_InputArray src_img_arr(src_img_data, src_img_size);
-        if((_mode & COLOR_MASK) == COLOR_GRAY)
-        {
+        if ((_mode & COLOR_MASK) == COLOR_GRAY) {
             src_mat = cv::imdecode(src_img_arr, cv::IMREAD_GRAYSCALE);
             READ_OVER_SRC();
-        }
-        else if((_mode & COLOR_MASK) == COLOR_BGRA)
-        {
+        } else if ((_mode & COLOR_MASK) == COLOR_BGRA) {
             src_mat = cv::imdecode(src_img_arr, cv::IMREAD_GRAYSCALE);
             READ_OVER_SRC();
-        }
-        else if((_mode & COLOR_MASK) == COLOR_BGR || (_mode & COLOR_MASK) == COLOR_BGRA_COLOR)
-        {
+        } else if ((_mode & COLOR_MASK) == COLOR_BGR || (_mode & COLOR_MASK) == COLOR_BGRA_COLOR) {
             src_mat = cv::imdecode(src_img_arr, cv::IMREAD_COLOR);
             READ_OVER_SRC();
         }
 
+        if (sx != 0 || sy != 0 || ex != -1 || ey != -1) {
+            if (ex == -1) ex = src_mat.cols;
+            if (ey == -1) ey = src_mat.rows;
+
+            cv::Rect roi(sx - 1, sy - 1, ex - sx + 1, ey - sy + 1);
+            src_mat = src_mat(roi);
+        }
+
         // 判断大小是否合法
-        if (target_mat.cols > src_mat.cols || target_mat.rows > src_mat.rows)
-        {
-            fprintf(stderr,"[Match] Err target_img is bigger than src_img");
+        if (target_mat.cols > src_mat.cols || target_mat.rows > src_mat.rows) {
+            fprintf(stderr, "[Match] Err target_img is bigger than src_img");
             return {};
         }
         cv::Mat result(src_mat.cols - target_mat.cols + 1, src_mat.rows - target_mat.rows + 1, CV_32FC1);
 
-        if((_mode & COLOR_MASK) == COLOR_BGRA || (_mode & COLOR_MASK) == COLOR_BGRA_COLOR)
-        {
+        if ((_mode & COLOR_MASK) == COLOR_BGRA || (_mode & COLOR_MASK) == COLOR_BGRA_COLOR) {
             cv::matchTemplate(src_mat, target_mat, result, cv::TM_CCOEFF_NORMED, mask_mat);
-        }
-        else
-        {
+        } else {
             cv::matchTemplate(src_mat, target_mat, result, cv::TM_CCOEFF_NORMED);
         }
 
 
-        std::vector <objectEx> proposals;
+        std::vector<objectEx> proposals;
 
-        for (int i = 0; i < result.rows; ++i)
-        {
-            for (int j = 0; j < result.cols; ++j)
-            {
+        for (int i = 0; i < result.rows; ++i) {
+            for (int j = 0; j < result.cols; ++j) {
                 float prob = result.at<float>(i, j);
-                if (prob > prob_threshold)
-                {
+                if (prob > prob_threshold) {
                     objectEx proposal;
                     proposal.rect.x = j;
                     proposal.rect.y = i;
@@ -112,8 +101,7 @@ namespace libmatch {
         std::vector<objectEx> res;
         res.reserve(picked.size());
 
-        for (auto x : picked)
-        {
+        for (auto x: picked) {
             res.push_back(proposals[x]);
         }
 
@@ -134,7 +122,8 @@ namespace libmatch {
         target_img_height = target_mat.rows;
     }
 
-    bool orb_matcher::compute(uint8_t *src_img_data, int src_img_size, int n_features, int max_distance, objectEx2 *res){
+    bool
+    orb_matcher::compute(uint8_t *src_img_data, int src_img_size, int n_features, int max_distance, objectEx2 *res) {
         cv::_InputArray src_img_arr(src_img_data, src_img_size);
         cv::Mat src_mat = cv::imdecode(src_img_arr, cv::IMREAD_GRAYSCALE);
         if (src_mat.empty()) {
@@ -170,7 +159,7 @@ namespace libmatch {
             return false;
         }
 
-        cv::Mat H = Findhomography(good_target_kps,good_src_kps);
+        cv::Mat H = Findhomography(good_target_kps, good_src_kps);
 
         std::vector<cv::Point2f> obj_corners(4);
         obj_corners[0] = cv::Point2f(0, 0);

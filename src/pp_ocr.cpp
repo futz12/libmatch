@@ -411,11 +411,9 @@ namespace libmatch {
             return abs(a.boxPoint[0].x - a.boxPoint[1].x) > abs(b.boxPoint[0].x - b.boxPoint[1].x);
         });
         std::vector<cv::Mat> partImages;
-        if (textBoxes.size() > 0) {
-            for (int i = 0; i < textBoxes.size(); ++i) {
-                cv::Mat partImg = getRotateCropImage(src, textBoxes[i].boxPoint);
-                partImages.emplace_back(partImg);
-            }
+        for (int i = 0; i < textBoxes.size(); ++i) {
+            cv::Mat partImg = getRotateCropImage(src, textBoxes[i].boxPoint);
+            partImages.emplace_back(partImg);
         }
 
         return partImages;

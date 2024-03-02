@@ -28,6 +28,7 @@ if(CCACHE_FOUND)
     set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif(CCACHE_FOUND)
 
+
 include_directories(./3rdpart/configor)
 
 # 添加 defined 以识别导入导出
@@ -40,7 +41,7 @@ add_library(libmatch SHARED src/library.cpp
         src/clipper.cpp
         src/pp_ocr.cpp
         src/yolos/yolov57.cpp
-        src/yolos/yolov57.h
+        src/dxgi/screenshot.cpp
 )
 target_link_libraries(libmatch ${OpenCV_LIBRARIES})
 target_link_libraries(libmatch ncnn)
