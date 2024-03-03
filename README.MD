@@ -3,6 +3,8 @@
 - Cur Version 0.9.5
 - Last Updated: 2024-03-03
 
+QQ GROUP: 904511841
+
 - [QUICK START](usage.md)
 
 ## Description
@@ -39,7 +41,7 @@ LibMatch 用C++编写，并提供C接口。可以在C++和其他支持C API的�
 - [ ] Add interface for 火山开发平台
 - [ ] Support Linux
 - [ ] Support Android
-- [ ] Import Yolov6,v8 (It need that I had read the paper.)
+- [ ] Import Yolov6,v8 (It needs that I had read the paper.)
 - [ ] Decrease the size of the library
 - [ ] Add more examples
 - [ ] Add more documents
