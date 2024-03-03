@@ -7,6 +7,19 @@ QQ GROUP: 904511841
 
 - [QUICK START](usage.md)
 
+## Effect Demo
+
+![Yolo](./assets/2.png)
+![Yolo](./assets/3.png)
+![OCR](./assets/4.png)
+![ORB](./assets/5.png)
+![Template](./assets/6.png)
+
+## Donate Me
+
+赞助作者: ![](./assets/1.jpg)
+
+
 ## Description
 
 LibMatch is a library for template match , yolo match , OCR , orb feature match and screenshot.
@@ -23,28 +36,29 @@ LibMatch 用C++编写，并提供C接口。可以在C++和其他支持C API的�
 
 ## Features
 
-- Template Match
-- Yolo Match
-- OCR
-- ORB Feature Match
-- Screenshot
-- C API
-- C++ API
+- Template Match (模板匹配)
+- Yolo Match (Yolo匹配)
+- OCR and can locate single characters (OCR 并且可以单字定位)
+- ORB Feature Match (ORB特征匹配)
+- Manually implement the search for the homology matrix (手动实现寻找单应性矩阵)
+- Screenshot (截图)
+- C API (C接口)
+- C++ API (C++接口)
 - Elanguage API (易语言调用)
 
 ## Todo List
 
-- [ ] Add interface for Python
-- [ ] Add interface for C#
-- [ ] Add interface for Java
-- [ ] Add interface for 按键精灵
-- [ ] Add interface for 火山开发平台
-- [ ] Support Linux
-- [ ] Support Android
+- [ ] Add interface for Python (添加Python接口)
+- [ ] Add interface for C# (添加C#接口)
+- [ ] Add interface for Java (添加Java接口)
+- [ ] Add interface for 按键精灵 (添加按键精灵接口)
+- [ ] Add interface for 火山开发平台 (添加火山开发平台接口)
+- [ ] Support Linux (支持Linux)
+- [ ] Support Android (支持Android)
 - [ ] Import Yolov6,v8 (It needs that I had read the paper.)
-- [ ] Decrease the size of the library
-- [ ] Add more examples
-- [ ] Add more documents
+- [ ] Decrease the size of the library (减小库的体积)
+- [ ] Add more examples (添加更多的例子)
+- [ ] Add more documents (添加更多的文档)
 
 ## Support Platform
 
