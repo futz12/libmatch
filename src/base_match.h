@@ -33,6 +33,10 @@ namespace libmatch {
 #define COLOR_BGR          0x00000002
 #define COLOR_BGRA_COLOR   0x00000003 // 真彩模式
 
+#define ORB_PRE_MASK      0x0000000F // orb 预处理模式
+#define ORB_PRE_NONE      0x00000000
+#define ORB_PRE_CANN      0x00000001 // 使用canny边缘检测
+
 #define READ_OVER() if (target_mat.empty()) {fprintf(stderr,"[Match] Err Can`t Read Image");return ;}
 #define READ_OVER_SRC() if (src_mat.empty()) {fprintf(stderr,"[Match] Err Can`t Read Image");return {};}
 

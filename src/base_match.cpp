@@ -129,6 +129,11 @@ namespace libmatch {
         cv::Mat target_mat = cv::imdecode(target_img_arr, cv::IMREAD_GRAYSCALE);
         READ_OVER();
 
+        if((mode & ORB_PRE_MASK) == ORB_PRE_CANN)
+        {
+            cv::Canny(target_mat, target_mat, 50, 200, 3);
+        }
+
         cv::Ptr<cv::ORB> orb = cv::ORB::create(n_features);
         orb->detect(target_mat, target_kps);
         orb->compute(target_mat, target_kps, target_desc);
@@ -145,6 +150,11 @@ namespace libmatch {
         if (src_mat.empty()) {
             fprintf(stderr, "[Match] Err Can`t Read Image");
             return false;
+        }
+
+        if((_mode & ORB_PRE_MASK) == ORB_PRE_CANN)
+        {
+            cv::Canny(src_mat, src_mat, 50, 200, 3);
         }
 
         cv::Mat src_desc;
