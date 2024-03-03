@@ -34,6 +34,14 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN 
 
 #include <stdint.h>
 
+
+#define COLOR_MASK        0x0000000F
+
+#define COLOR_GRAY         0x00000000
+#define COLOR_BGRA         0x00000001
+#define COLOR_BGR          0x00000002
+#define COLOR_BGRA_COLOR   0x00000003 // 真彩模式
+
 struct Rect {
     int x, y, width, height;
 };

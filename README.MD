@@ -3,6 +3,8 @@
 - Cur Version 0.9.5
 - Last Updated: 2024-03-03
 
+- [QUICK START](usage.md)
+
 ## Description
 
 LibMatch is a library for template match , yolo match , OCR , orb feature match and screenshot.
