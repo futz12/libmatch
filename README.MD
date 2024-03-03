@@ -59,10 +59,13 @@ LibMatch 用C++编写，并提供C接口。可以在C++和其他支持C API的�
 - [ ] Decrease the size of the library (减小库的体积)
 - [ ] Add more examples (添加更多的例子)
 - [ ] Add more documents (添加更多的文档)
+- [ ] Import the Algorithm of CAPTCHA (加入验证码算法)
 
 ## Support Platform
 
 - Windows 32/64
 
+# Star History
 
+[![Star History Chart](https://api.star-history.com/svg?repos=futz12/libmatch&type=Date)](https://star-history.com/#futz12/libmatch&Date)
 
