@@ -37,7 +37,7 @@ namespace libmatch {
         RECT rect;
         GetWindowRect(hwndTarget, &rect);
 
-        float scale = (float) GetDpiForWindow(hwndTarget) / USER_DEFAULT_SCREEN_DPI;
+        float scale = (float) GetDeviceCaps(hdcTarget, LOGPIXELSX) / USER_DEFAULT_SCREEN_DPI;
 
         rect.right = (int) (rect.right * scale);
         rect.bottom = (int) (rect.bottom * scale);

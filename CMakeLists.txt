@@ -3,6 +3,8 @@ project(libmatch)
 
 set(CMAKE_CXX_STANDARD 17)
 
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+
 # 判断系统位数
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     set(OpenCV_DIR ./3rdpart/ocvm/x64/x64/vc14/staticlib)

@@ -51,7 +51,7 @@ namespace libmatch {
 
     class ppocr {
     public:
-        ppocr::ppocr(std::vector<uint8_t> &det_bin, std::string &det_param, std::vector<uint8_t> &rec_bin,
+        ppocr(std::vector<uint8_t> &det_bin, std::string &det_param, std::vector<uint8_t> &rec_bin,
                      std::string &rec_param,
                      std::string &keylist, int num_thread, bool use_vulkan);
 

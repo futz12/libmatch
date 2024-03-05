@@ -50,7 +50,7 @@ namespace libmatch {
         template_matcher(uint8_t *target_img_data, int target_img_size, uint32_t mode);
 
         std::vector<objectEx>
-        template_matcher::compute(uint8_t *src_img_data, int src_img_size, float prob_threshold, float nms_threshold,
+        compute(uint8_t *src_img_data, int src_img_size, float prob_threshold, float nms_threshold,
                                   int sx = 0, int sy = 0, int ex = -1, int ey = -1);
     }; // 模板匹配匹配子
 
