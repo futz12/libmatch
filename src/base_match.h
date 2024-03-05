@@ -32,6 +32,8 @@ namespace libmatch {
 #define COLOR_BGRA         0x00000001
 #define COLOR_BGR          0x00000002
 #define COLOR_BGRA_COLOR   0x00000003 // 真彩模式
+#define COLOR_BGR_MASK     0x00000004 // bgr 模式
+#define COLOR_GRAY_MASK    0x00000005 // gray 模式
 
 #define ORB_PRE_MASK      0x0000000F // orb 预处理模式
 #define ORB_PRE_NONE      0x00000000

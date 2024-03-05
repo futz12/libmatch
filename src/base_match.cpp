@@ -49,6 +49,29 @@ namespace libmatch {
         } else if ((mode & COLOR_MASK) == COLOR_BGR) {
             target_mat = cv::imdecode(target_img_arr, cv::IMREAD_COLOR);
             READ_OVER();
+        } else if ((mode & COLOR_MASK) == COLOR_BGR_MASK || (mode & COLOR_MASK) == COLOR_GRAY_MASK) {
+            target_mat = cv::imdecode(target_img_arr, cv::IMREAD_COLOR);
+            READ_OVER();
+            // 以左上角的像素作为 mask_color
+            cv::Vec3b mask_color = target_mat.at<cv::Vec3b>(0, 0);
+            // 目标颜色为 mask_color 的部分为 0 其他部分为 1
+            mask_mat = cv::Mat(target_mat.size(), CV_8UC1);
+
+            for (int i = 0; i < target_mat.rows; i++) {
+                for (int j = 0; j < target_mat.cols; j++) {
+                    cv::Vec3b color = target_mat.at<cv::Vec3b>(i, j);
+                    if (color == mask_color) {
+                        mask_mat.at<uint8_t>(i, j) = 0;
+                    } else {
+                        mask_mat.at<uint8_t>(i, j) = 255;
+                    }
+                }
+            }
+            // cv::imshow("mask", mask_mat);
+
+            if ((mode & COLOR_MASK) == COLOR_GRAY_MASK)
+                cv::cvtColor(target_mat, target_mat, cv::COLOR_BGR2GRAY);
+
         } else {
             fprintf(stderr, "[Match] Err mode");
             return;
@@ -61,13 +84,13 @@ namespace libmatch {
                               int sx, int sy, int ex, int ey) {
         cv::Mat src_mat;
         cv::_InputArray src_img_arr(src_img_data, src_img_size);
-        if ((_mode & COLOR_MASK) == COLOR_GRAY) {
+        if ((_mode & COLOR_MASK) == COLOR_GRAY || (_mode & COLOR_MASK) == COLOR_GRAY_MASK) {
             src_mat = cv::imdecode(src_img_arr, cv::IMREAD_GRAYSCALE);
             READ_OVER_SRC();
         } else if ((_mode & COLOR_MASK) == COLOR_BGRA) {
             src_mat = cv::imdecode(src_img_arr, cv::IMREAD_GRAYSCALE);
             READ_OVER_SRC();
-        } else if ((_mode & COLOR_MASK) == COLOR_BGR || (_mode & COLOR_MASK) == COLOR_BGRA_COLOR) {
+        } else if ((_mode & COLOR_MASK) == COLOR_BGR || (_mode & COLOR_MASK) == COLOR_BGRA_COLOR || (_mode & COLOR_MASK) == COLOR_BGR_MASK){
             src_mat = cv::imdecode(src_img_arr, cv::IMREAD_COLOR);
             READ_OVER_SRC();
         }
@@ -87,12 +110,11 @@ namespace libmatch {
         }
         cv::Mat result(src_mat.cols - target_mat.cols + 1, src_mat.rows - target_mat.rows + 1, CV_32FC1);
 
-        if ((_mode & COLOR_MASK) == COLOR_BGRA || (_mode & COLOR_MASK) == COLOR_BGRA_COLOR) {
+        if ((_mode & COLOR_MASK) == COLOR_BGRA || (_mode & COLOR_MASK) == COLOR_BGRA_COLOR || (_mode & COLOR_MASK) == COLOR_BGR_MASK || (_mode & COLOR_MASK) == COLOR_GRAY_MASK) {
             cv::matchTemplate(src_mat, target_mat, result, cv::TM_CCOEFF_NORMED, mask_mat);
         } else {
             cv::matchTemplate(src_mat, target_mat, result, cv::TM_CCOEFF_NORMED);
         }
-
 
         std::vector<objectEx> proposals;
 
@@ -129,8 +151,7 @@ namespace libmatch {
         cv::Mat target_mat = cv::imdecode(target_img_arr, cv::IMREAD_GRAYSCALE);
         READ_OVER();
 
-        if((mode & ORB_PRE_MASK) == ORB_PRE_CANN)
-        {
+        if ((mode & ORB_PRE_MASK) == ORB_PRE_CANN) {
             cv::Canny(target_mat, target_mat, 50, 200, 3);
         }
 
@@ -152,8 +173,7 @@ namespace libmatch {
             return false;
         }
 
-        if((_mode & ORB_PRE_MASK) == ORB_PRE_CANN)
-        {
+        if ((_mode & ORB_PRE_MASK) == ORB_PRE_CANN) {
             cv::Canny(src_mat, src_mat, 50, 200, 3);
         }
 
