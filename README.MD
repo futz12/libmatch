@@ -3,7 +3,8 @@
 - Cur Version 0.9.5
 - Last Updated: 2024-03-03
 
-QQ GROUP: 904511841
+Because of the busy study, the original QQ group has been disbanded, please be aware.
+由于学业繁忙，原QQ群已解散，望周知。
 
 - [QUICK START](usage.md)
 
@@ -14,11 +15,6 @@ QQ GROUP: 904511841
 ![OCR](./assets/4.png)
 ![ORB](./assets/5.png)
 ![Template](./assets/6.png)
-
-## Donate Me
-
-赞助作者: ![](./assets/1.jpg)
-
 
 ## Description
 

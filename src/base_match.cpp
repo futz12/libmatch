@@ -23,6 +23,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN 
 #include <opencv2/opencv.hpp>
 #include "base_algorithm.h"
 #include "base_match.h"
+#include "atlimage.h"
 
 namespace libmatch {
     template_matcher::template_matcher(uint8_t *target_img_data, int target_img_size, uint32_t mode) {
