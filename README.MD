@@ -3,8 +3,7 @@
 - Cur Version 0.9.5
 - Last Updated: 2024-03-03
 
-Because of the busy study, the original QQ group has been disbanded, please be aware.
-由于学业繁忙，原QQ群已解散，望周知。
+纯技术交流群：767178345（带审核）
 
 - [QUICK START](usage.md)
 
