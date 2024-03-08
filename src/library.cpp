@@ -5,7 +5,7 @@ const char* version = "0.9.5";
 
 LIBMATCH_API const char* libmatch_version()
 {
-    cv::getBuildInformation();
+    // cv::getBuildInformation();
     return version;
 }
 

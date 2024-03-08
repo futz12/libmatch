@@ -16,12 +16,14 @@ Create a template matcher.
 - `target_img_size`: The size of the target image.
 - `mode`: The mode of the template matcher.
 - 
-| Mode | Description                                          |
-| ---- |------------------------------------------------------|
-| COLOR_GRAY | Use target image AS a gray image.                    |
-| COLOR_BGR  | Use target image AS a BGR image.                     |
-| COLOR_BGRA | Use target image AS image has Aplha channel but gray |
-| COLOR_BGRA_COLOR | Use target image AS image has Aplha channel          |
+| Mode | Description                                                       |
+| ---- |-------------------------------------------------------------------|
+| COLOR_GRAY | Use target image AS a gray image.                                 |
+| COLOR_BGR  | Use target image AS a BGR image.                                  |
+| COLOR_BGRA | Use target image AS image has Aplha channel but gray              |
+| COLOR_BGRA_COLOR | Use target image AS image has Aplha channel                       |
+| COLOR_BGR_MASK  | Use target image AS a BGR image and set (0,0) color as mask color |
+| COLOR_GRAY_MASK | Use target image AS a gray image and set (0,0) color as mask color |
 
 Return the handle of the template matcher.
 
@@ -64,7 +66,7 @@ Destroy the result of the template match.
 ---
 
 ```
-LIBMATCH_C_API int template_matcher_result_count(void* result)
+LIBMATCH_C_API int template_matcher_result_size(void* result)
 ```
 
 Get the count of the result.
