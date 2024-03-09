@@ -106,8 +106,9 @@ LRESULT BitmapWindow::windowProc(UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_PAINT: {
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(m_hwnd, &ps);
-		// ps.rcPaint always equals client rect since the class style is set to CS_HREDRAW|CS_VREDRAW
-		StretchDIBits(hdc, 0, 0, ps.rcPaint.right, ps.rcPaint.bottom, m_xSrc, m_ySrc, ps.rcPaint.right, ps.rcPaint.bottom, m_bits, &m_bi, DIB_RGB_COLORS, SRCCOPY);
+		RECT rc;
+		GetClientRect(m_hwnd, &rc);
+		StretchDIBits(hdc, 0, 0, rc.right, rc.bottom, m_xSrc, m_ySrc, rc.right, rc.bottom, m_bits, &m_bi, DIB_RGB_COLORS, SRCCOPY);
 		EndPaint(m_hwnd, &ps);
 		return 0;
 	}
@@ -261,11 +262,13 @@ LRESULT TextWindow::windowProc(UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_PAINT: {
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(m_hwnd, &ps);
+		RECT rc;
+		GetClientRect(m_hwnd, &rc);
 		auto oldFont = SelectObject(hdc, m_hFont);
 		SetTextColor(hdc, RGB(255, 0, 0));
 		SetBkMode(hdc, TRANSPARENT);
-		FillRect(hdc, &ps.rcPaint, (HBRUSH)GetStockObject(WHITE_BRUSH));
-		DrawTextA(hdc, m_text.c_str(), m_text.length(), &ps.rcPaint, DT_LEFT | DT_NOPREFIX | DT_WORDBREAK);
+		FillRect(hdc, &rc, (HBRUSH)GetStockObject(WHITE_BRUSH));
+		DrawTextA(hdc, m_text.c_str(), m_text.length(), &rc, DT_LEFT | DT_NOPREFIX | DT_WORDBREAK);
 		SelectObject(hdc, oldFont);
 		EndPaint(m_hwnd, &ps);
 		return 0;
