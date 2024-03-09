@@ -208,7 +208,7 @@ void BitmapWindow::drawBitmap(int horz, int vert)
 	if (vert < 0) {
 		vert = GetScrollPos(m_hwnd, SB_VERT);
 	}
-	std::cout << horz << " " << vert << "\n";
+	//std::cout << horz << " " << vert << "\n";
 	RECT rc;
 	GetClientRect(m_hwnd, &rc);
 	if (m_bi.bmiHeader.biHeight < 0) {
