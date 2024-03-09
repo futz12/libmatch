@@ -144,11 +144,11 @@ LRESULT BitmapWindow::windowProc(UINT msg, WPARAM wParam, LPARAM lParam)
 			SetScrollPos(m_hwnd, SB_VERT, pos, TRUE);
 			break;
 		case SB_LINEDOWN:
-			SetScrollPos(m_hwnd, SB_VERT, GetScrollPos(m_hwnd, SB_VERT) - 1, TRUE);
+			SetScrollPos(m_hwnd, SB_VERT, GetScrollPos(m_hwnd, SB_VERT) + 1, TRUE);
 			drawBitmap();
 			break;
 		case SB_LINEUP:
-			SetScrollPos(m_hwnd, SB_VERT, GetScrollPos(m_hwnd, SB_VERT) + 1, TRUE);
+			SetScrollPos(m_hwnd, SB_VERT, GetScrollPos(m_hwnd, SB_VERT) - 1, TRUE);
 			drawBitmap();
 			break;
 		default:
