@@ -1,6 +1,7 @@
 // Created by szx0427
 // on 2024/03/08
 
+#ifdef _WIN32
 #include "bmpWnd.h"
 #include <cassert>
 #include <stdexcept>
@@ -305,3 +306,5 @@ TextWindow::~TextWindow()
 {
 	DeleteObject(m_hFont);
 }
+
+#endif // _WIN32
