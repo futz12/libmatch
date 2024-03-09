@@ -3,6 +3,7 @@
 
 #pragma once
 
+#ifdef _WIN32
 #include <windows.h>
 #include <map>
 #include <string>
@@ -74,3 +75,5 @@ public:
 	void show();
 	virtual ~TextWindow();
 };
+
+#endif
