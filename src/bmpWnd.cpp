@@ -288,7 +288,7 @@ TextWindow::TextWindow(LPCSTR text, int fontSize)
 	lf.lfWeight = FW_REGULAR;
 	HDC hdc = GetDC(nullptr);
 	lf.lfHeight = -MulDiv(fontSize, GetDeviceCaps(hdc, LOGPIXELSY), 72);
-	ReleaseDC(m_hwnd, hdc);
+	ReleaseDC(nullptr, hdc);
 	strcpy_s(lf.lfFaceName, "Microsoft Yahei");
 	m_hFont = CreateFontIndirectA(&lf);
 }
