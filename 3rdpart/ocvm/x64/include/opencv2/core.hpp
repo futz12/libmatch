@@ -239,8 +239,6 @@ enum ReduceTypes { REDUCE_SUM = 0, //!< the output is the sum of all rows/column
 /** @brief Swaps two matrices
 */
 CV_EXPORTS void swap(Mat& a, Mat& b);
-/** @overload */
-CV_EXPORTS void swap( UMat& a, UMat& b );
 
 //! @} core
 
@@ -1511,10 +1509,6 @@ CV_EXPORTS_W void min(InputArray src1, InputArray src2, OutputArray dst);
 needed to avoid conflicts with const _Tp& std::min(const _Tp&, const _Tp&, _Compare)
 */
 CV_EXPORTS void min(const Mat& src1, const Mat& src2, Mat& dst);
-/** @overload
-needed to avoid conflicts with const _Tp& std::min(const _Tp&, const _Tp&, _Compare)
-*/
-CV_EXPORTS void min(const UMat& src1, const UMat& src2, UMat& dst);
 
 /** @brief Calculates per-element maximum of two arrays or an array and a scalar.
 
@@ -1532,10 +1526,6 @@ CV_EXPORTS_W void max(InputArray src1, InputArray src2, OutputArray dst);
 needed to avoid conflicts with const _Tp& std::min(const _Tp&, const _Tp&, _Compare)
 */
 CV_EXPORTS void max(const Mat& src1, const Mat& src2, Mat& dst);
-/** @overload
-needed to avoid conflicts with const _Tp& std::min(const _Tp&, const _Tp&, _Compare)
-*/
-CV_EXPORTS void max(const UMat& src1, const UMat& src2, UMat& dst);
 
 /** @brief Calculates a square root of array elements.
 
@@ -3391,6 +3381,5 @@ struct ParamType<_Tp, typename std::enable_if< std::is_enum<_Tp>::value >::type>
 #include "opencv2/core/cvstd.inl.hpp"
 #include "opencv2/core/utility.hpp"
 #include "opencv2/core/optim.hpp"
-#include "opencv2/core/ovx.hpp"
 
 #endif /*OPENCV_CORE_HPP*/
