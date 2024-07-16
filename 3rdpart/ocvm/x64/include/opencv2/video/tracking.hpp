@@ -779,7 +779,7 @@ public:
 
 
 
-/** @brief the GOTURN (Generic object Tracking Using Regression Networks) tracker
+/** @brief the GOTURN (Generic Object Tracking Using Regression Networks) tracker
  *
  *  GOTURN (@cite GOTURN) is kind of trackers based on Convolutional Neural Networks (CNN). While taking all advantages of CNN trackers,
  *  GOTURN is much faster due to offline training without online fine-tuning nature.

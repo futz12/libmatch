@@ -22,12 +22,12 @@ lib.release_template_matcher.argtypes = [c_void_p]
 
 
 class mode:
-    COLOR_GRAY = 0
-    COLOR_BGRA = 1
-    COLOR_BGR = 2
-    COLOR_BGRA_COLOR = 3
-    COLOR_BGR_MASK = 4
-    COLOR_GRAY_MASK = 5
+    COLOR_GRAY = 0  # Use target image AS a gray image.
+    COLOR_BGRA = 1  # Use target image AS a BGR image.
+    COLOR_BGR = 2  # Use target image AS image has Aplha channel but gray
+    COLOR_BGRA_COLOR = 3  # Use target image AS image has Aplha channel
+    COLOR_BGR_MASK = 4  # Use target image AS a BGR image and set (0,0) color as mask color
+    COLOR_GRAY_MASK = 5  # Use target image AS a gray image and set (0,0) color as mask color
 
 
 class _Rect(Structure):
@@ -51,6 +51,7 @@ class _objectEx(Structure):
     def __str__(self):
         return "ObjectEx(rect={}, prob={})".format(self.rect, self.prob)
 
+
 class Rect:
     def __init__(self, x, y, width, height):
         self.x = x
@@ -63,6 +64,7 @@ class Rect:
 
     def __repr__(self):
         return self.__str__()
+
 
 class objectEx:
     def __init__(self, rect, prob):
@@ -94,7 +96,7 @@ class template_matcher:
         # LIBMATCH_C_API void release_template_matcher(void* matcher)
         lib.release_template_matcher(self.matcher)
 
-    def compute(self, source_image, prob_threshold = 0.65, nms_threshold = 0.25):
+    def compute(self, source_image, prob_threshold=0.65, nms_threshold=0.25):
         # LIBMATCH_C_API void* template_matcher_compute(void* matcher, uint8_t *src_img_data, int src_img_size, float prob_threshold, float nms_threshold)
         byte_stream = io.BytesIO()
         source_image.save(byte_stream, format='BMP')
@@ -112,7 +114,6 @@ class template_matcher:
         result_list = []
 
         for i in range(result_count):
-
             result_obj = _objectEx()
             lib.template_matcher_result_get(hresult, i, byref(result_obj))
 
@@ -124,13 +125,3 @@ class template_matcher:
         lib.release_template_matcher_result(hresult)
 
         return result_list
-
-
-
-
-
-
-
-
-
-

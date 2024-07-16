@@ -7,11 +7,11 @@ set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
 # 判断系统位数
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    set(OpenCV_DIR ./3rdpart/ocvm/x64/x64/vc14/staticlib)
+    set(OpenCV_DIR ./3rdpart/ocvm/x64/x64/vc17/staticlib)
     set(ncnn_DIR ./3rdpart/ncnn/x64/lib/cmake/ncnn)
     set(ncnn_INCLUDE_DIRS ./3rdpart/ncnn/x64/include)
 else()
-    set(OpenCV_DIR ./3rdpart/ocvm/x86/x86/vc14/staticlib)
+    set(OpenCV_DIR ./3rdpart/ocvm/x86/x86/vc17/staticlib)
     set(ncnn_DIR ./3rdpart/ncnn/x86/lib/cmake/ncnn)
     set(ncnn_INCLUDE_DIRS ./3rdpart/ncnn/x86/include)
 endif()

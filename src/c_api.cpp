@@ -28,6 +28,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN 
 #include <json.hpp>
 #include "./yolos/yolov57.h"
 #include "./dxgi/screenshot.h"
+#include "bmpWnd.h"
 
 #include "c_api.h"
 
@@ -189,3 +190,13 @@ LIBMATCH_C_API int capture_get_bitmap(void *capture,void **bitmap) {
     *bitmap = ((libmatch::window_capture *) capture)->bitmap;
     return ((libmatch::window_capture *) capture)->bitmap_size;
 }
+
+#ifdef _WIN32
+
+LIBMATCH_C_API bool show_bitmap(void *bitmap_file,char *title) {
+    BitmapWindow bmpWnd(bitmap_file);
+    bmpWnd.show(title);
+    return true;
+}
+
+#endif

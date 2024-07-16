@@ -62,7 +62,7 @@ matching descriptors that are represented as vectors in a multidimensional space
 implement vector descriptor matchers inherit the DescriptorMatcher interface.
 
     @defgroup features2d_draw Drawing Function of Keypoints and Matches
-    @defgroup features2d_category object Categorization
+    @defgroup features2d_category Object Categorization
 
 This section describes approaches based on local 2D features and used to categorize objects.
 
@@ -1245,7 +1245,6 @@ protected:
 
     //! Collection of descriptors from train images.
     std::vector<Mat> trainDescCollection;
-    std::vector<UMat> utrainDescCollection;
 };
 
 /** @brief Brute-force descriptor matcher.

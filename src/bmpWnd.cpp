@@ -88,7 +88,7 @@ void SimpleWindow::centerWindow() const
 
 LRESULT SimpleWindow::windowProc(UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	return DefWindowProc(m_hwnd, msg, wParam, lParam);
+	return DefWindowProcA(m_hwnd, msg, wParam, lParam);
 }
 
 SimpleWindow::~SimpleWindow()

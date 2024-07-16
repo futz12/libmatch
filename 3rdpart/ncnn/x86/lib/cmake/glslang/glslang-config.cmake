@@ -3,7 +3,7 @@
 ####### Any changes to this file will be overwritten by the next CMake run ####
 ####### The input file was glslang-config.cmake.in                            ########
 
-get_filename_component(PACKAGE_PREFIX_DIR "${CMAKE_CURRENT_LIST_DIR}/../../../" ABSOLUTE)
+get_filename_component(PACKAGE_${CMAKE_FIND_PACKAGE_NAME}_COUNTER_1 "${CMAKE_CURRENT_LIST_DIR}/../../../" ABSOLUTE)
 
 macro(set_and_check _var _file)
   set(${_var} "${_file}")
@@ -24,5 +24,5 @@ endmacro()
 
 ####################################################################################
         
-        include("${PACKAGE_PREFIX_DIR}/lib/cmake/glslang/glslang-targets.cmake")
+        include("${PACKAGE_${CMAKE_FIND_PACKAGE_NAME}_COUNTER_1}/lib/cmake/glslang/glslang-targets.cmake")
     
