@@ -44,6 +44,7 @@ add_library(libmatch SHARED src/library.cpp
         src/pp_ocr.cpp
         src/yolos/yolov57.cpp
         src/dxgi/screenshot.cpp
+        src/bmpWnd.cpp
 )
 target_link_libraries(libmatch ${OpenCV_LIBRARIES})
 target_link_libraries(libmatch ncnn)
