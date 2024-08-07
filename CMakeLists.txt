@@ -5,18 +5,25 @@ set(CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
-# 判断系统位数
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    set(OpenCV_DIR ./3rdpart/ocvm/x64/x64/vc17/staticlib)
-    set(ncnn_DIR ./3rdpart/ncnn/x64/lib/cmake/ncnn)
-    set(ncnn_INCLUDE_DIRS ./3rdpart/ncnn/x64/include)
-else()
-    set(OpenCV_DIR ./3rdpart/ocvm/x86/x86/vc17/staticlib)
-    set(ncnn_DIR ./3rdpart/ncnn/x86/lib/cmake/ncnn)
-    set(ncnn_INCLUDE_DIRS ./3rdpart/ncnn/x86/include)
-endif()
+# Windows
+if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    # 判断系统位数
+    if (CMAKE_SIZEOF_VOID_P EQUAL 8)
+        set(OpenCV_DIR ./3rdpart/windows/ocvm/x64/x64/vc15/staticlib)
+        set(ncnn_DIR ./3rdpart/windows/ncnn/x64/lib/cmake/ncnn)
+        set(ncnn_INCLUDE_DIRS ./3rdpart/windows/ncnn/x64/include)
+    else ()
+        set(OpenCV_DIR ./3rdpart/windows/ocvm/x86/x86/vc15/staticlib)
+        set(ncnn_DIR ./3rdpart/windows/ncnn/x86/lib/cmake/ncnn)
+        set(ncnn_INCLUDE_DIRS ./3rdpart/windows/ncnn/x86/include)
+    endif ()
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(OpenCV_DIR ./3rdpart/linux/ocvm/lib/cmake/opencv4)
+    set(ncnn_DIR ./3rdpart/linux/ncnn/lib/cmake/ncnn)
+    set(ncnn_INCLUDE_DIRS ./3rdpart/linux/ncnn/include)
+endif ()
 
-find_package(OpenCV REQUIRED)	# 找到opencv库
+find_package(OpenCV REQUIRED) # 找到opencv库
 include_directories(${OpenCV_INCLUDE_DIRS})
 
 find_package(ncnn REQUIRED)    # 找到ncnn库
@@ -25,13 +32,10 @@ include_directories(${ncnn_INCLUDE_DIRS})
 
 # Configure CCache if available
 find_program(CCACHE_FOUND ccache)
-if(CCACHE_FOUND)
+if (CCACHE_FOUND)
     set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
     set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
-endif(CCACHE_FOUND)
-
-
-include_directories(./3rdpart/configor)
+endif (CCACHE_FOUND)
 
 # 添加 defined 以识别导入导出
 add_definitions(-DLIBMATCH_EXPORTS)
@@ -42,9 +46,6 @@ add_library(libmatch SHARED src/library.cpp
         src/c_api.cpp
         src/clipper.cpp
         src/pp_ocr.cpp
-        src/yolos/yolov57.cpp
-        src/dxgi/screenshot.cpp
-        src/bmpWnd.cpp
 )
 target_link_libraries(libmatch ${OpenCV_LIBRARIES})
 target_link_libraries(libmatch ncnn)

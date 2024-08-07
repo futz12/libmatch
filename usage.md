@@ -1,6 +1,6 @@
 # LibMatch GUIDE
 
-## Version 0.9.5
+## Version 0.9.6
 
 ## C API
 
@@ -118,21 +118,44 @@ The objectEx.
 ### ORB Match FUNCTIONS
 
 ```
-LIBMATCH_C_API void* create_orb_matcher(uint8_t *target_img_data, int target_img_size, uint32_t mode)
+LIBMATCH_C_API void *orb_create_featurer(uint8_t *img_data, int img_size, void *param, int mode);
+```
+
+Create a ORB featurer.
+
+- `img_data`: The data of the image.
+- `img_size`: The size of the image.
+- `param`: The param of the ORB(orb_param pointer), set 0 will use default param.
+- `mode`: The mode of the ORB.(reserved)
+
+Return the handle of the ORB featurer.
+
+---
+
+```
+LIBMATCH_C_API void orb_release_featurer(void *featurer);
+```
+
+Destroy a ORB featurer.
+
+- `featurer`: The ORB featurer.
+
+---
+
+```
+LIBMATCH_C_API void *orb_create_matcher(int mode);
 ```
 
 Create a ORB matcher.
 
-- `target_img_data`: The data of the target image.
-- `target_img_size`: The size of the target image.
-- `mode`: The mode of the ORB matcher.(Not used now)
+- `mode`: The mode of the ORB matcher.(0 is flann, 1 is hamming)
 
 Return the handle of the ORB matcher.
 
 ---
 
 ```
-LIBMATCH_C_API void release_orb_matcher(void* matcher)
+LIBMATCH_C_API void orb_release_matcher(void *matcher);
 ```
 
 Destroy a ORB matcher.
@@ -142,19 +165,18 @@ Destroy a ORB matcher.
 ---
 
 ```
-LIBMATCH_C_API bool orb_matcher_compute(void* matcher, uint8_t *src_img_data, int src_img_size, int n_features, int max_distance, void* result);
+LIBMATCH_C_API uint32_t orb_matcher_compute(void *matcher, void *source, void *target, float thresh, void *result);
 ```
 
 Compute the ORB match.
 
 - `matcher`: The ORB matcher.
-- `src_img_data`: The data of the source image.
-- `src_img_size`: The size of the source image.
-- `n_features`: The number of features.
-- `max_distance`: The max distance.(0-256)
-- `result`: The result of the ORB match.(objectEx2)
+- `source`: The source featurer.
+- `target`: The target featurer.
+- `thresh`: The threshold.(the range of flann mode is [0,1], the range of hamming mode is [0,256])
+- `result`: The result of the ORB match.
 
-Return the handle of the result.
+Return the count of the result.
 
 ---
 
@@ -165,6 +187,7 @@ struct objectEx2 {
     struct {
         float x, y;
     } dots[4];
+    float prob;
 };
 ```
 
@@ -173,8 +196,35 @@ The objectEx2.
 - `dots`: The dots.
 - `x`: The x of the dot.
 - `y`: The y of the dot.
+- `prob`: The probability.
 
 ---
+
+```
+struct orb_param {
+    int nfeatures = 500;
+    float scaleFactor = 1.2f;
+    int nlevels = 8;
+    int edgeThreshold = 31;
+    int firstLevel = 0;
+    int WTA_K = 2;
+    int scoreType = 0;
+    int patchSize = 31;
+    int fastThreshold = 20;
+};
+```
+
+The orb_param.
+
+- `nfeatures`: The number of features you want to get.
+- `scaleFactor`: The scale factor.
+- `nlevels`: The number of levels.(如果目标缩放比例较大，可以增加这个值)
+- `edgeThreshold`: The edge threshold.(如果目标为文本，可以减小这个值)
+- `firstLevel`: The first level.
+- `WTA_K`: The WTA_K.
+- `scoreType`: The score type, set 1 will be faster but less accurate.
+- `patchSize`: The patch size.
+- `fastThreshold`: The fast threshold.
 
 ### OCR FUNCTIONS
 
@@ -293,157 +343,6 @@ The TextBox.
 - `text`: The text.
 - `size_charPositions`: The size of the per-char positions.
 - `charPositions`: The array of the per-char positions.
-
----
-
-### YOLO Match FUNCTIONS
-
-```
-LIBMATCH_C_API void* create_yolo57(uint8_t *bin, int bin_size, char *param, char *config)
-```
-
-Create a YOLO57.
-
-- `bin`: The data of the bin.
-- `bin_size`: The size of the bin.
-- `param`: The param of the model.
-- `config`: The config of the model.
-
-Return the handle of the YOLO57.
-
-```
-LIBMATCH_C_API void release_yolo57(void* yolo)
-```
-
-Destroy a YOLO57.
-
-- `yolo`: The YOLO57.
-
----
-
-```
-LIBMATCH_C_API void* yolo57_detect(void* yolo57, uint8_t *src_img_data, int src_img_size,float prob_threshold, float nms_threshold,bool agnostic)
-```
-
-Detect the object.
-
-- `yolo57`: The YOLO57.
-- `src_img_data`: The data of the source image.
-- `src_img_size`: The size of the source image.
-- `prob_threshold`: The probability threshold.
-- `nms_threshold`: The NMS threshold.
-- `agnostic`: The agnostic.(Can it show only one class at a position)
-
-Return the handle of the result.
----
-```
-LIBMATCH_C_API size_t yolo57_result_size(void* result)
-```
-
-Get the size of the result.
-
-- `result`: The result of the YOLO57.
-
-Return the size of the result.
-
----
-```
-LIBMATCH_C_API void yolo57_get_object(void* result, size_t index, void* result_obj)
-```
-
-Get the object.
-
-- `result`: The result of the YOLO57.
-- `index`: The index you want to get.
-- `result_obj`: The pointer of the object.(Input)
-
----
-```
-LIBMATCH_C_API void release_yolo57_result(void* result)
-```
-
-Destroy the result of the YOLO57.
-
-- `result`: The result of the YOLO57.
-
-### YOLO OBJECT
-
-```
-struct RectF {
-    float x, y, width, height;
-};
-```
-
-The rectangle.
-
----
-
-```
-struct object
-{
-    RectF rect;
-    int label;
-    float prob;
-};
-```
-
-The object.
-
-- `rect`: The rectangle.
-- `label`: The index of label.
-- `prob`: The probability.
-
----
-
-### Screenshot FUNCTIONS
-
-```
-LIBMATCH_C_API void* create_window_capture(void *hwnd, int sx, int sy, int ex, int ey)
-```
-
-Create a window capture.
-
-- `hwnd`: The handle of the window.
-- `sx`: The start x.
-- `sy`: The start y.
-- `ex`: The end x.
-- `ey`: The end y.
-
-> ATTENTION: The size of the capture is `ex-sx+1` and `ey-sy+1`.
-> The begin of sx and sy is 1.
-
-Return the handle of the window capture.
-
----
-```
-LIBMATCH_C_API void release_window_capture(void *capture)
-```
-
-Destroy a window capture.
-
-- `capture`: The window capture.
-
----
-```
-LIBMATCH_C_API void capture_update(void *capture)
-```
-
-Update the window capture.
-
-- `capture`: The window capture.
-
----
-```
-LIBMATCH_C_API int capture_get_bitmap(void *capture,void **bitmap)
-```
-
-Get the bitmap of the window capture.
-
-- `capture`: The window capture.
-- `bitmap`: The pointer of the bitmap.(Input)
-
-> ATTENTION: The bitmap is a pointer of the bitmap.
-> And it will be free when you call `release_window_capture`.
 
 ---
 

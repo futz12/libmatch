@@ -1,4 +1,4 @@
-/*
+﻿/*
 The MIT License (MIT)
 Copyright © 2024 <libmatch>
 
@@ -24,8 +24,6 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN 
 
 
 namespace libmatch {
-
-
 #define COLOR_MASK        0x0000000F
 
 #define COLOR_GRAY         0x00000000
@@ -53,22 +51,56 @@ namespace libmatch {
 
         std::vector<objectEx>
         compute(uint8_t *src_img_data, int src_img_size, float prob_threshold, float nms_threshold,
-                                  int sx = 0, int sy = 0, int ex = -1, int ey = -1);
+                int sx = 0, int sy = 0, int ex = -1, int ey = -1);
     }; // 模板匹配匹配子
 
-    class orb_matcher {
-    private:
-        uint32_t _mode;
-        std::vector<cv::KeyPoint> target_kps;
-        cv::Mat target_desc;
+    struct orb_param {
+        int nfeatures = 500;
+        float scaleFactor = 1.2f;
+        int nlevels = 8;
+        int edgeThreshold = 31;
+        int firstLevel = 0;
+        int WTA_K = 2;
+        int scoreType = 0;
+        int patchSize = 31;
+        int fastThreshold = 20;
+    };
 
-        int target_img_width;
-        int target_img_height;
+    // orb 特征子
+    class orb_featurer {
+    private:
+        std::vector<cv::KeyPoint> m_kps;
+        cv::Mat m_desc;
+        cv::Mat m_desc_fp32;
+        cv::Size m_size;
+        friend class orb_matcher;
 
     public:
-        orb_matcher(uint8_t *target_img_data, int target_img_size, int n_features, uint32_t mode);
+        orb_featurer(const uint8_t *img_data, int img_size, orb_param param, uint32_t mode);
+    };
 
-        bool compute(uint8_t *src_img_data, int src_img_size, int n_features, int max_distance, objectEx2 *res);
+    enum match_mode {
+        flann = 0,
+        hamming = 1,
+    };
+
+    //orb 匹配器
+    class orb_matcher {
+    private:
+        uint32_t m_mode{};
+        cv::Ptr<cv::DescriptorMatcher> matcher;
+
+        uint32_t flann_matcher(orb_featurer &source, orb_featurer &target, float thresh,
+                               objectEx2 *res);
+
+        uint32_t hamming_matcher(orb_featurer &source, orb_featurer &target, float thresh,
+                                 objectEx2 *res);
+
+    public:
+        explicit orb_matcher(uint32_t mode);
+
+        uint32_t match(orb_featurer &source,orb_featurer &target, float thresh,
+                       objectEx2 *res);
     };
 } // libmatch
 

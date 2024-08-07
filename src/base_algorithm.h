@@ -1,4 +1,4 @@
-/*
+﻿/*
 The MIT License (MIT)
 Copyright © 2024 <libmatch>
 
@@ -34,23 +34,11 @@ namespace libmatch {
         struct {
             float x, y;
         } dots[4];
-    };
-    struct object
-    {
-        cv::Rect_<float> rect;
-        int label;
         float prob;
     };
 
 #ifdef LIBMATCH_EXPORTS
-    inline float intersection_area(const objectEx &a, const objectEx &b);
-    void nms_sorted_bboxes(const std::vector<objectEx> &objects, std::vector<int> &picked, float nms_threshold);
-    void nms_sorted_bboxes(const std::vector<object> &objects, std::vector<int>& picked, float nms_threshold, bool agnostic = false);
-    cv::Mat Findhomography(std::vector<cv::Point2f> src, std::vector<cv::Point2f> target);
-    inline float sigmoid(float x)
-    {
-        return static_cast<float>(1.f / (1.f + exp(-x)));
-    }
+
 #endif
 } // libmatch
 

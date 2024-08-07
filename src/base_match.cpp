@@ -1,4 +1,4 @@
-/*
+﻿/*
 The MIT License (MIT)
 Copyright © 2024 <libmatch>
 
@@ -21,9 +21,9 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN 
 #include <cstdint>
 
 #include <opencv2/opencv.hpp>
+#include <opencv2/dnn.hpp>
 #include "base_algorithm.h"
 #include "base_match.h"
-#include "atlimage.h"
 
 namespace libmatch {
     template_matcher::template_matcher(uint8_t *target_img_data, int target_img_size, uint32_t mode) {
@@ -72,7 +72,6 @@ namespace libmatch {
 
             if ((mode & COLOR_MASK) == COLOR_GRAY_MASK)
                 cv::cvtColor(target_mat, target_mat, cv::COLOR_BGR2GRAY);
-
         } else {
             fprintf(stderr, "[Match] Err mode");
             return;
@@ -91,7 +90,8 @@ namespace libmatch {
         } else if ((_mode & COLOR_MASK) == COLOR_BGRA) {
             src_mat = cv::imdecode(src_img_arr, cv::IMREAD_GRAYSCALE);
             READ_OVER_SRC();
-        } else if ((_mode & COLOR_MASK) == COLOR_BGR || (_mode & COLOR_MASK) == COLOR_BGRA_COLOR || (_mode & COLOR_MASK) == COLOR_BGR_MASK){
+        } else if ((_mode & COLOR_MASK) == COLOR_BGR || (_mode & COLOR_MASK) == COLOR_BGRA_COLOR || (_mode & COLOR_MASK)
+                   == COLOR_BGR_MASK) {
             src_mat = cv::imdecode(src_img_arr, cv::IMREAD_COLOR);
             READ_OVER_SRC();
         }
@@ -111,108 +111,109 @@ namespace libmatch {
         }
         cv::Mat result(src_mat.cols - target_mat.cols + 1, src_mat.rows - target_mat.rows + 1, CV_32FC1);
 
-        if ((_mode & COLOR_MASK) == COLOR_BGRA || (_mode & COLOR_MASK) == COLOR_BGRA_COLOR || (_mode & COLOR_MASK) == COLOR_BGR_MASK || (_mode & COLOR_MASK) == COLOR_GRAY_MASK) {
+        if ((_mode & COLOR_MASK) == COLOR_BGRA || (_mode & COLOR_MASK) == COLOR_BGRA_COLOR || (_mode & COLOR_MASK) ==
+            COLOR_BGR_MASK || (_mode & COLOR_MASK) == COLOR_GRAY_MASK) {
             cv::matchTemplate(src_mat, target_mat, result, cv::TM_CCOEFF_NORMED, mask_mat);
         } else {
             cv::matchTemplate(src_mat, target_mat, result, cv::TM_CCOEFF_NORMED);
         }
 
-        std::vector<objectEx> proposals;
+        std::vector<cv::Rect> boxes;
+        std::vector<float> probs;
+
 
         for (int i = 0; i < result.rows; ++i) {
             for (int j = 0; j < result.cols; ++j) {
                 float prob = result.at<float>(i, j);
-                if (prob > prob_threshold) {
-                    objectEx proposal;
-                    proposal.rect.x = j;
-                    proposal.rect.y = i;
-                    proposal.rect.width = target_mat.cols;
-                    proposal.rect.height = target_mat.rows;
-                    proposal.prob = prob;
-                    proposals.push_back(proposal);
+                if (prob > prob_threshold && prob <= 1.0001) {
+                    boxes.emplace_back(j, i, target_mat.cols, target_mat.rows);
+                    probs.push_back(prob);
                 }
             }
         }
 
         std::vector<int> picked;
-        nms_sorted_bboxes(proposals, picked, nms_threshold);
+        cv::dnn::NMSBoxes(boxes, probs, prob_threshold, nms_threshold, picked);
 
         std::vector<objectEx> res;
         res.reserve(picked.size());
 
         for (auto x: picked) {
-            res.push_back(proposals[x]);
+            objectEx obj;
+            obj.rect = boxes[x];
+            obj.prob = probs[x];
+            res.push_back(obj);
         }
 
         return res;
     }
 
-    orb_matcher::orb_matcher(uint8_t *target_img_data, int target_img_size, int n_features, uint32_t mode) {
-        cv::_InputArray target_img_arr(target_img_data, target_img_size);
-        cv::Mat target_mat = cv::imdecode(target_img_arr, cv::IMREAD_GRAYSCALE);
-        READ_OVER();
-
-        if ((mode & ORB_PRE_MASK) == ORB_PRE_CANN) {
-            cv::Canny(target_mat, target_mat, 50, 200, 3);
+    orb_featurer::orb_featurer(const uint8_t *img_data, int img_size, orb_param param, uint32_t mode) {
+        cv::_InputArray img_arr(img_data, img_size);
+        cv::Mat img_mat = cv::imdecode(img_arr, cv::IMREAD_GRAYSCALE);
+        if (img_mat.empty()) {
+            fprintf(stderr, "[Match] Err Can`t Read Image");
+            return;
         }
+        m_size = img_mat.size();
+        cv::Ptr<cv::ORB> orb = cv::ORB::create(param.nfeatures, param.scaleFactor, param.nlevels,
+                                               param.edgeThreshold,
+                                               param.firstLevel, param.WTA_K, cv::ORB::ScoreType(param.scoreType),
+                                               param.patchSize,
+                                               param.fastThreshold);
 
-        cv::Ptr<cv::ORB> orb = cv::ORB::create(n_features);
-        orb->detect(target_mat, target_kps);
-        orb->compute(target_mat, target_kps, target_desc);
-
-        _mode = mode;
-        target_img_width = target_mat.cols;
-        target_img_height = target_mat.rows;
+        orb->detectAndCompute(img_mat, cv::noArray(), m_kps, m_desc);
     }
 
-    bool
-    orb_matcher::compute(uint8_t *src_img_data, int src_img_size, int n_features, int max_distance, objectEx2 *res) {
-        cv::_InputArray src_img_arr(src_img_data, src_img_size);
-        cv::Mat src_mat = cv::imdecode(src_img_arr, cv::IMREAD_GRAYSCALE);
-        if (src_mat.empty()) {
-            fprintf(stderr, "[Match] Err Can`t Read Image");
-            return false;
+    uint32_t orb_matcher::flann_matcher(orb_featurer &source, orb_featurer &target, float thresh,
+                                        objectEx2 *res) {
+        if (source.m_desc.empty() || target.m_desc.empty()) {
+            return 0;
+        }
+        std::vector<std::vector<cv::DMatch> > knn_matches;
+
+        if (source.m_desc_fp32.empty()) {
+            source.m_desc.convertTo(source.m_desc_fp32, CV_32F);
+        }
+        if (target.m_desc_fp32.empty()) {
+            target.m_desc.convertTo(target.m_desc_fp32, CV_32F);
         }
 
-        if ((_mode & ORB_PRE_MASK) == ORB_PRE_CANN) {
-            cv::Canny(src_mat, src_mat, 50, 200, 3);
-        }
+        matcher->knnMatch(target.m_desc_fp32, source.m_desc_fp32, knn_matches, 2);
+        std::vector<cv::DMatch> good_matches;
 
-        cv::Mat src_desc;
-        std::vector<cv::KeyPoint> src_kps;
+        float prob = 0;
 
-        cv::Ptr<cv::ORB> orb = cv::ORB::create(n_features);
-
-        orb->detect(src_mat, src_kps);
-        orb->compute(src_mat, src_kps, src_desc);
-
-        cv::BFMatcher matcher(cv::NORM_HAMMING, true);//利用汉明距离的匹配器
-        std::vector<cv::DMatch> matches;
-
-        matcher.match(target_desc, src_desc, matches);
-
-        std::vector<cv::Point2f> good_src_kps;
-        std::vector<cv::Point2f> good_target_kps;
-
-        for (auto &match: matches) {
-            if (match.distance < max_distance) {
-                good_src_kps.push_back(src_kps[match.trainIdx].pt);
-                good_target_kps.push_back(target_kps[match.queryIdx].pt);
+        for (auto &knn_matche: knn_matches) {
+            if (knn_matche[0].distance < thresh * knn_matche[1].distance) {
+                good_matches.push_back(knn_matche[0]);
+                prob += knn_matche[0].distance / knn_matche[1].distance;
             }
         }
 
-        if (good_src_kps.size() < 4) {
-            fprintf(stderr, "[Match] Err not enough matches");
-            return false;
+        if (good_matches.size() < 4) {
+            return 0;
         }
 
-        cv::Mat H = Findhomography(good_target_kps, good_src_kps);
+        prob /= good_matches.size();
+        prob = 1 - prob;
+
+        std::vector<cv::Point> good_target_kps, good_src_kps;
+        for (auto &match: good_matches) {
+            good_target_kps.push_back(target.m_kps[match.queryIdx].pt);
+            good_src_kps.push_back(source.m_kps[match.trainIdx].pt);
+        }
+
+        cv::Mat H = cv::findHomography(good_target_kps, good_src_kps, cv::RANSAC);
+        if (H.empty()) {
+            return 0;
+        }
 
         std::vector<cv::Point2f> obj_corners(4);
         obj_corners[0] = cv::Point2f(0, 0);
-        obj_corners[1] = cv::Point2f((float) target_img_width, 0);
-        obj_corners[2] = cv::Point2f((float) target_img_width, (float) target_img_height);
-        obj_corners[3] = cv::Point2f(0, (float) target_img_height);
+        obj_corners[1] = cv::Point2f((float) target.m_size.width, 0);
+        obj_corners[2] = cv::Point2f((float) target.m_size.width, (float) target.m_size.height);
+        obj_corners[3] = cv::Point2f(0, (float) target.m_size.height);
 
         std::vector<cv::Point2f> scene_corners(4);
         cv::perspectiveTransform(obj_corners, scene_corners, H);
@@ -221,7 +222,76 @@ namespace libmatch {
             res->dots[i].x = scene_corners[i].x;
             res->dots[i].y = scene_corners[i].y;
         }
+        res->prob = prob;
 
-        return true;
+        return 1;
+    }
+
+    uint32_t orb_matcher::hamming_matcher(orb_featurer &source, orb_featurer &target, const float thresh,
+                                          objectEx2 *res) {
+        if (source.m_desc.empty() || target.m_desc.empty()) {
+            return 0;
+        }
+        std::vector<cv::DMatch> matches;
+        matcher->match(target.m_desc, source.m_desc, matches);
+
+        std::vector<cv::Point2f> good_src_kps;
+        std::vector<cv::Point2f> good_target_kps;
+
+        float prob = 0;
+
+        for (auto &match: matches) {
+            if (match.distance < thresh) {
+                good_src_kps.push_back(source.m_kps[match.trainIdx].pt);
+                good_target_kps.push_back(target.m_kps[match.queryIdx].pt);
+                prob += match.distance / 256;
+            }
+        }
+
+        if (good_src_kps.size() < 4) {
+            return 0;
+        }
+
+        prob /= good_src_kps.size();
+        prob = 1 - prob;
+
+        cv::Mat H = cv::findHomography(good_target_kps, good_src_kps,cv::RANSAC);
+        if (H.empty()) {
+            return 0;
+        }
+
+        std::vector<cv::Point2f> obj_corners(4);
+        obj_corners[0] = cv::Point2f(0, 0);
+        obj_corners[1] = cv::Point2f((float) target.m_size.width, 0);
+        obj_corners[2] = cv::Point2f((float) target.m_size.width, (float) target.m_size.height);
+        obj_corners[3] = cv::Point2f(0, (float) target.m_size.height);
+
+        std::vector<cv::Point2f> scene_corners(4);
+        cv::perspectiveTransform(obj_corners, scene_corners, H);
+
+        for (int i = 0; i < 4; i++) {
+            res->dots[i].x = scene_corners[i].x;
+            res->dots[i].y = scene_corners[i].y;
+        }
+        res->prob = prob;
+
+        return 1;
+    }
+
+    orb_matcher::orb_matcher(const uint32_t mode) : m_mode(mode) {
+        if (mode == flann) {
+            matcher = cv::FlannBasedMatcher::create();
+        } else {
+            matcher = cv::BFMatcher::create(cv::NORM_HAMMING, true);
+        }
+    }
+
+    uint32_t orb_matcher::match(orb_featurer &source, orb_featurer &target, const float thresh,
+                                objectEx2 *res) {
+        if (m_mode == flann) {
+            return flann_matcher(source, target, thresh, res);
+        } else {
+            return hamming_matcher(source, target, thresh, res);
+        }
     }
 } // libmatch
