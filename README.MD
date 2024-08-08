@@ -49,7 +49,7 @@ LibMatch 用C++编写，并提供C接口。可以在C++和其他支持C API的�
 - [ ] Add interface for C++ (添加C++接口)
 - [x] Add interface for Python(Partial) (添加Python接口，部分) 
 - [x] Add interface for C#(Partial) (添加C#接口，部分)
-- [ ] Add interface for Java (添加Java接口)
+- [x] Add interface for Java (添加Java接口，部分)
 - [ ] Add interface for 按键精灵 (添加按键精灵接口)
 - [ ] Add interface for 火山开发平台 (添加火山开发平台接口)
 - [x] Support Linux (支持Linux)
