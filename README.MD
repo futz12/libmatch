@@ -14,7 +14,7 @@
 
 BUG交流群：767178345
 
-- [QUICK START](usage.md)
+- [QUICK START](docs/usage.md)
 
 ## Effect Demo
 
