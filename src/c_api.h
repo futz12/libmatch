@@ -59,6 +59,7 @@ struct objectEx2 {
     struct {
         float x, y;
     } dots[4];
+
     float prob;
 };
 
@@ -80,6 +81,12 @@ struct orb_param {
     int scoreType = 0;
     int patchSize = 31;
     int fastThreshold = 20;
+};
+
+struct RecResult {
+    char *text;
+    int *charPositions;
+    float prob;
 };
 
 LIBMATCH_C_API void *create_template_matcher(uint8_t *target_img_data, int target_img_size, uint32_t mode);
@@ -124,6 +131,16 @@ LIBMATCH_C_API void ppocr_get_textbox(void *result, size_t index, void *result_o
 LIBMATCH_C_API void release_ppocr_textbox(void *result_obj);
 
 LIBMATCH_C_API void release_ppocr_result(void *result);
+
+LIBMATCH_C_API void *create_ddddrec(uint8_t *rec_bin, int rec_bin_size, char *rec_param, const char *keylist,
+                                    int num_thread, bool use_vulkan);
+
+LIBMATCH_C_API void release_ddddrec(void *ddddrec);
+
+LIBMATCH_C_API uint32_t ddddrec_detect(void *ddddrec, uint8_t *src_img_data, int src_img_size, const char *options,
+                                       void *result);
+
+LIBMATCH_C_API void release_ddddrec_result(void *result);
 
 LIBMATCH_C_API void unregister_vulkan();
 

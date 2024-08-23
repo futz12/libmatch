@@ -29,11 +29,9 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN 
 
 
 namespace libmatch {
-
     ppocr::ppocr(std::vector<uint8_t> &det_bin, std::string &det_param, std::vector<uint8_t> &rec_bin,
                  std::string &rec_param,
                  std::string &keylist, int num_thread, bool use_vulkan) {
-
         dbNet.opt.num_threads = num_thread;
         crnnNet.opt.num_threads = 1; // LTSM模型多线程写外面更好
         this->_num_thread = num_thread;
@@ -158,7 +156,7 @@ namespace libmatch {
             box[i].y = box[i].y - minY;
         }
 
-        std::vector<std::vector<cv::Point>> maskBox;
+        std::vector<std::vector<cv::Point> > maskBox;
         maskBox.push_back(box);
         cv::Mat maskMat(maxY - minY + 1, maxX - minX + 1, CV_8UC1, cv::Scalar(0, 0, 0));
         cv::fillPoly(maskMat, maskBox, cv::Scalar(1, 1, 1), 1);
@@ -200,7 +198,7 @@ namespace libmatch {
         float minArea = 3;
         std::vector<TextBox> rsBoxes;
         rsBoxes.clear();
-        std::vector<std::vector<cv::Point>> contours;
+        std::vector<std::vector<cv::Point> > contours;
         cv::findContours(norfMapMat, contours, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
         for (int i = 0; i < contours.size(); ++i) {
             float minSideLen, perimeter;
@@ -252,7 +250,7 @@ namespace libmatch {
             w = w * scale;
         }
 
-        ncnn::Mat input = ncnn::Mat::from_pixels_resize(src.data, ncnn::Mat::PIXEL_RGB, width, height, w, h);
+        ncnn::Mat input = ncnn::Mat::from_pixels_resize(src.data, ncnn::Mat::PIXEL_BGR2RGB, width, height, w, h);
 
         // pad to target_size rectangle
         int wpad = (w + 31) / 32 * 32 - w;
@@ -307,13 +305,13 @@ namespace libmatch {
 
             maxIndex = int(argmax(outputData.begin() + i * w, outputData.begin() + i * w + w));
             maxValue = float(
-                    *std::max_element(outputData.begin() + i * w, outputData.begin() + i * w + w)); // / partition;
+                *std::max_element(outputData.begin() + i * w, outputData.begin() + i * w + w)); // / partition;
             if (maxIndex > 0 && maxIndex < keySize &&
-                (!(i > 0 && maxIndex == lastIndex)))                   // CTC特性：连续相同即判定为同一个字
+                (!(i > 0 && maxIndex == lastIndex))) // CTC特性：连续相同即判定为同一个字
             {
                 scores.emplace_back(maxValue);
                 strRes.append(keys[maxIndex - 1]);
-                positions.emplace_back((float) i / (float) h);//这里还只是相对位置
+                positions.emplace_back((float) i / (float) h); //这里还只是相对位置
             }
             lastIndex = maxIndex;
         }
@@ -435,6 +433,4 @@ namespace libmatch {
 
         return partImages;
     }
-
-
 } // libmatch

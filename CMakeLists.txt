@@ -5,6 +5,9 @@ set(CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
+option(BUILD_SHARED_LIBS "Build shared libraries" ON)
+option(BUILD_EXAMPLES "Build examples" ON)
+
 # Windows
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     # 判断系统位数
@@ -40,12 +43,31 @@ endif (CCACHE_FOUND)
 # 添加 defined 以识别导入导出
 add_definitions(-DLIBMATCH_EXPORTS)
 
-add_library(libmatch SHARED src/library.cpp
-        src/base_algorithm.cpp
-        src/base_match.cpp
-        src/c_api.cpp
-        src/clipper.cpp
-        src/pp_ocr.cpp
-)
+if (BUILD_SHARED_LIBS)
+    add_library(libmatch SHARED src/library.cpp
+            src/base_algorithm.cpp
+            src/base_match.cpp
+            src/c_api.cpp
+            src/clipper.cpp
+            src/pp_ocr.cpp
+            src/ddddrec.cpp
+    )
+else ()
+    add_library(libmatch STATIC src/library.cpp
+            src/base_algorithm.cpp
+            src/base_match.cpp
+            src/c_api.cpp
+            src/clipper.cpp
+            src/pp_ocr.cpp
+            src/ddddrec.cpp
+    )
+endif ()
+
+if(BUILD_EXAMPLES)
+    include_directories(./src/c_api.h)
+    add_executable(libmatch_example_ddddrec SDK/c_demo/ddddrec.cpp)
+    target_link_libraries(libmatch_example_ddddrec libmatch)
+endif ()
+
 target_link_libraries(libmatch ${OpenCV_LIBRARIES})
 target_link_libraries(libmatch ncnn)

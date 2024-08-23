@@ -25,6 +25,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN 
 #include "base_algorithm.h"
 #include "base_match.h"
 #include "pp_ocr.h"
+#include "ddddrec.h"
 
 #include "c_api.h"
 
@@ -109,6 +110,11 @@ LIBMATCH_C_API void release_ppocr(void *ppocr) {
 
 LIBMATCH_C_API void *ppocr_detect(void *ppocr, uint8_t *src_img_data, int src_img_size) {
     cv::Mat src = cv::imdecode(cv::Mat(1, src_img_size, CV_8U, src_img_data), cv::IMREAD_COLOR);
+    if (src.empty()) {
+        fprintf(stderr, "[PPOCR] Decode Image Failed\n");
+        return nullptr;
+    }
+
     return new std::vector<libmatch::TextBox>(((libmatch::ppocr *) ppocr)->detect(src));
 }
 
@@ -142,6 +148,44 @@ LIBMATCH_C_API void release_ppocr_textbox(void *result) {
 
 LIBMATCH_C_API void release_ppocr_result(void *result) {
     delete (std::vector<libmatch::TextBox> *) result;
+}
+
+LIBMATCH_C_API void *create_ddddrec(uint8_t *rec_bin, int rec_bin_size, char *rec_param, const char *keylist,
+                                    int num_thread, bool use_vulkan) {
+    std::vector<uint8_t> rec_bin_v(rec_bin, rec_bin + rec_bin_size);
+    std::string rec_param_v(rec_param);
+    std::string keylist_s(keylist);
+    return new libmatch::ddddrec(rec_bin_v, rec_param_v, keylist_s, num_thread, use_vulkan);
+}
+
+LIBMATCH_C_API void release_ddddrec(void *ddddrec) {
+    delete (libmatch::ddddrec *) ddddrec;
+}
+
+LIBMATCH_C_API uint32_t ddddrec_detect(void *ddddrec, uint8_t *src_img_data, int src_img_size, const char *options,
+                                       void *result) {
+    std::string options_s(options);
+    cv::Mat src = cv::imdecode(cv::Mat(1, src_img_size, CV_8U, src_img_data), cv::IMREAD_GRAYSCALE);
+    if (src.empty()) {
+        fprintf(stderr, "[DDDDREC] Decode Image Failed\n");
+        return 0;
+    }
+
+    auto [prob, text, charPositions] = ((libmatch::ddddrec *) ddddrec)->detect(src, options_s);
+    ((RecResult *) result)->text = new char[text.size() + 1];
+    memcpy(((RecResult *) result)->text, text.c_str(), text.size());
+    ((RecResult *) result)->text[text.size()] = '\0';
+    ((RecResult *) result)->prob = prob;
+    ((RecResult *) result)->charPositions = new int[charPositions.size() + 1];
+    memcpy(((RecResult *) result)->charPositions, charPositions.data(), charPositions.size() * sizeof(int));
+
+    return charPositions.size();
+}
+
+LIBMATCH_C_API void release_ddddrec_result(void *result) {
+    auto res = (RecResult *) (result);
+    delete[] res->text;
+    delete[] res->charPositions;
 }
 
 LIBMATCH_C_API void unregister_vulkan() {
