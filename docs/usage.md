@@ -6,7 +6,7 @@
 
 ### Template Match FUNCTIONS
 
-```
+```cpp
 LIBMATCH_C_API void* create_template_matcher(uint8_t *target_img_data, int target_img_size, uint32_t mode)
 ```
 
@@ -15,21 +15,22 @@ Create a template matcher.
 - `target_img_data`: The data of the target image.
 - `target_img_size`: The size of the target image.
 - `mode`: The mode of the template matcher.
-- 
-| Mode | Description                                                       |
-| ---- |-------------------------------------------------------------------|
-| COLOR_GRAY | Use target image AS a gray image.                                 |
-| COLOR_BGR  | Use target image AS a BGR image.                                  |
-| COLOR_BGRA | Use target image AS image has Aplha channel but gray              |
-| COLOR_BGRA_COLOR | Use target image AS image has Aplha channel                       |
-| COLOR_BGR_MASK  | Use target image AS a BGR image and set (0,0) color as mask color |
-| COLOR_GRAY_MASK | Use target image AS a gray image and set (0,0) color as mask color |
+-
+
+| Mode             | Description                                                        |
+|------------------|--------------------------------------------------------------------|
+| COLOR_GRAY       | Use target image AS a gray image.                                  |
+| COLOR_BGR        | Use target image AS a BGR image.                                   |
+| COLOR_BGRA       | Use target image AS image has Aplha channel but gray               |
+| COLOR_BGRA_COLOR | Use target image AS image has Aplha channel                        |
+| COLOR_BGR_MASK   | Use target image AS a BGR image and set (0,0) color as mask color  |
+| COLOR_GRAY_MASK  | Use target image AS a gray image and set (0,0) color as mask color |
 
 Return the handle of the template matcher.
 
 ---
 
-```
+```cpp
 LIBMATCH_C_API void release_template_matcher(void* matcher)
 ```
 
@@ -39,7 +40,7 @@ Destroy a template matcher.
 
 ---
 
-```
+```cpp
 LIBMATCH_C_API void* template_matcher_compute(void* matcher, uint8_t *src_img_data, int src_img_size, float prob_threshold, float nms_threshold)
 ```
 
@@ -55,7 +56,7 @@ Return the handle of the result.
 
 ---
 
-```
+```cpp
 LIBMATCH_C_API void release_template_matcher_result(void* result)
 ```
 
@@ -65,7 +66,7 @@ Destroy the result of the template match.
 
 ---
 
-```
+```cpp
 LIBMATCH_C_API int template_matcher_result_size(void* result)
 ```
 
@@ -77,7 +78,7 @@ Return the count of the result.
 
 ---
 
-```
+```cpp
 LIBMATCH_C_API void template_matcher_result_get(void* result, size_t index, void* result_obj)
 ```
 
@@ -91,7 +92,7 @@ Get the result object.
 
 ### Template Match OBJECT
 
-```
+```cpp
 struct Rect {
     int x, y, width, height;
 };
@@ -101,7 +102,7 @@ The rectangle.
 
 ---
 
-```
+```cpp
 struct objectEx {
     Rect rect;
     float prob;
@@ -117,7 +118,7 @@ The objectEx.
 
 ### ORB Match FUNCTIONS
 
-```
+```cpp
 LIBMATCH_C_API void *orb_create_featurer(uint8_t *img_data, int img_size, void *param, int mode);
 ```
 
@@ -132,7 +133,7 @@ Return the handle of the ORB featurer.
 
 ---
 
-```
+```cpp
 LIBMATCH_C_API void orb_release_featurer(void *featurer);
 ```
 
@@ -142,7 +143,7 @@ Destroy a ORB featurer.
 
 ---
 
-```
+```cpp
 LIBMATCH_C_API void *orb_create_matcher(int mode);
 ```
 
@@ -154,7 +155,7 @@ Return the handle of the ORB matcher.
 
 ---
 
-```
+```cpp
 LIBMATCH_C_API void orb_release_matcher(void *matcher);
 ```
 
@@ -164,7 +165,7 @@ Destroy a ORB matcher.
 
 ---
 
-```
+```cpp
 LIBMATCH_C_API uint32_t orb_matcher_compute(void *matcher, void *source, void *target, float thresh, void *result);
 ```
 
@@ -182,7 +183,7 @@ Return the count of the result.
 
 ### ORB Match OBJECT
 
-```
+```cpp
 struct objectEx2 {
     struct {
         float x, y;
@@ -200,7 +201,7 @@ The objectEx2.
 
 ---
 
-```
+```cpp
 struct orb_param {
     int nfeatures = 500;
     float scaleFactor = 1.2f;
@@ -228,7 +229,7 @@ The orb_param.
 
 ### OCR FUNCTIONS
 
-```
+```cpp
 LIBMATCH_C_API void* create_ppocr(uint8_t *det_bin, int det_bin_size, char *det_param, uint8_t *rec_bin, int rec_bin_size, char *rec_param, const char *keylist, int num_thread, bool use_vulkan)
 ```
 
@@ -248,7 +249,7 @@ Return the handle of the PP-OCR.
 
 ---
 
-```
+```cpp
 LIBMATCH_C_API void release_ppocr(void* ppocr)
 ```
 
@@ -258,7 +259,7 @@ Destroy a PP-OCR.
 
 ---
 
-```
+```cpp
 LIBMATCH_C_API void* ppocr_detect(void* ppocr, uint8_t *src_img_data, int src_img_size)
 ```
 
@@ -272,7 +273,7 @@ Return the handle of the result.
 
 ---
 
-```
+```cpp
 LIBMATCH_C_API size_t ppocr_result_size(void* result)
 ```
 
@@ -284,7 +285,7 @@ Return the size of the result.
 
 ---
 
-```
+```cpp
 LIBMATCH_C_API void ppocr_get_textbox(void* result, size_t index, void* result_obj)
 ```
 
@@ -296,7 +297,7 @@ Get the textbox.
 
 ---
 
-```
+```cpp
 LIBMATCH_C_API void release_ppocr_textbox(void* result_obj)
 ```
 
@@ -306,7 +307,7 @@ Destroy the textbox.
 
 ---
 
-```
+```cpp
 LIBMATCH_C_API void release_ppocr_result(void* result)
 ```
 
@@ -316,7 +317,7 @@ Destroy the result of the PP-OCR.
 
 ### OCR OBJECT
 
-```
+```cpp
 struct Point {
     int x, y;
 };
@@ -326,7 +327,7 @@ The point.
 
 ---
 
-```
+```cpp
 struct TextBox {
     Point boxPoint[4];
     float score;
@@ -346,9 +347,77 @@ The TextBox.
 
 ---
 
+### DDDDOCR REC Function
+
+```cpp
+LIBMATCH_C_API void *create_ddddrec(uint8_t *rec_bin, int rec_bin_size, char *rec_param, const char *keylist, int num_thread, bool use_vulkan)
+```
+
+Create a DDDD-REC.
+
+- `rec_bin`: The data of the rec model.
+- `rec_bin_size`: The size of the rec model.
+- `rec_param`: The param of the rec model.
+- `keylist`: The keylist.
+- `num_thread`: The number of thread.
+- `use_vulkan`: Use vulkan or not.
+
+Return the handle of the DDDD-REC.
+
+---
+
+```cpp
+LIBMATCH_C_API void release_ddddrec(void *ddddrec)
+```
+
+Destroy a DDDD-REC.
+
+- `ddddrec`: The handle of the DDDD-REC.
+
+---
+
+```cpp
+LIBMATCH_C_API uint32_t ddddrec_detect(void *ddddrec, uint8_t *src_img_data, int src_img_size, const char *options, void *result)
+```
+
+Detect the text.
+
+- `ddddrec`: The handle of the DDDD-REC.
+- `src_img_data`: The data of the source image.
+- `src_img_size`: The size of the source image.
+- `options`: The text the image may contain. Set "" will detect all text.
+- `result`: The result(pointer of RecResult) of the DDDD-REC.
+
+Return the count of the text.
+
+---
+
+```cpp
+LIBMATCH_C_API void release_ddddrec_result(void *result)
+```
+
+Destroy the result of the DDDD-REC.
+
+- `result`: The result of the DDDD-REC.
+
+### DDDDOCR REC OBJECT
+
+```cpp
+struct RecResult {
+    char *text;
+    int *charPositions;
+    float prob;
+};
+```
+
+The RecResult.
+- `text`: The text.
+- `charPositions`: The array of the per-char positions.
+- `prob`: The probability of all the text.
+
 ### Release The Library
 
-```
+```cpp
 LIBMATCH_C_API void unregister_vulkan()
 ```
 
