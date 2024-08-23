@@ -1,17 +1,22 @@
-from libmatch import matcher, tools, ocr
-from PIL import Image,ImageFont,ImageDraw
+from libmatch import matcher, ddddocr, ppocr
+from PIL import Image, ImageFont, ImageDraw
 
-target_image = Image.open("./4.png")
+# Template Match
+
+target_image = Image.open("./assets/4.png")
 
 m = matcher.template_matcher(target_image, matcher.mode.COLOR_BGR)
 
-src_image = Image.open("./3.png")
+src_image = Image.open("./assets/3.png")
 
 ans = m.compute(src_image, 0.8, 0.8)
 
+# =========================
 
-ppocr = ocr.ppocr("./demo/models/")
-input_image = Image.open("./1.png")
+# PPOCR
+
+ppocr = ppocr.ppocr("./models/")
+input_image = Image.open("./assets/3.png")
 ocr_result = ppocr.detect(input_image)
 
 font_style = ImageFont.truetype("simsun.ttc", 20, encoding="utf-8")
@@ -25,6 +30,14 @@ for i in range(len(ocr_result)):
     font = ImageFont.load_default()
     draw.text((box[0].x, box[0].y), ocr_result[i].text, font=font_style, fill=(255, 0, 0))
 
-tools.show_bitmap(input_image, "result")
+input_image.show()
 
+# =========================
 
+# DDODCR
+
+ddddocr = ddddocr.ddddocr("./models/")
+input_image = Image.open("./assets/3.png")
+ocr_result = ddddocr.detect(input_image, [])
+
+print(ocr_result)

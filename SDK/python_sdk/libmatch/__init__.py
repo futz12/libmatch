@@ -15,7 +15,6 @@ else:
 
 lib.libmatch_version.restype = c_char_p
 
-
 def libmatch_version():
     return lib.libmatch_version().decode('utf-8')
 

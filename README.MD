@@ -1,16 +1,11 @@
 # LibMatch
 
-- Cur Version 0.9.6
-- Last Updated: 2024-03-03
+- Cur Version 0.9.7
+- Last Updated: 2024-08-23
 
 版本更新日志：
 
-1. 重构特征匹配算法，提高匹配精度（尤其是文本识别）。支持返回置信度。
-2. 修复模板匹配置信度 INFINITY 的问题
-3. 移除截图模块，减小库的体积
-4. 移除YoLo模块，减小库的体积
-5. 支持Linux平台（仅在Debian 12.5下测试过）
-6. 修复了一些小问题
+1. 支持DDDDOCR
 
 BUG交流群：767178345
 
