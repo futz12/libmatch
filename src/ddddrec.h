@@ -28,10 +28,10 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN 
 namespace libmatch {
     class ddddrec {
     public:
-        ddddrec::ddddrec(std::vector<uint8_t> &rec_bin, std::string &rec_param,
+        ddddrec(std::vector<uint8_t> &rec_bin, std::string &rec_param,
                          std::string &keylist, int num_thread, bool use_vulkan);
 
-        std::tuple<float, std::string, std::vector<int> > ddddrec::detect(
+        std::tuple<float, std::string, std::vector<int> > detect(
             const cv::Mat &src, const std::string &options);
 
     private:

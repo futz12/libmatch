@@ -32,7 +32,8 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN 
 #define LIBMATCH_C_API extern "C"
 #endif
 
-#include <stdint.h>
+#include <cstdint>
+#include <cstddef>
 
 
 #define COLOR_MASK        0x0000000F

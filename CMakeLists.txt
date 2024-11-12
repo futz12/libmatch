@@ -64,7 +64,7 @@ else ()
 endif ()
 
 if(BUILD_EXAMPLES)
-    include_directories(./src/c_api.h)
+    include_directories(src)
     add_executable(libmatch_example_ddddrec SDK/c_demo/ddddrec.cpp)
     target_link_libraries(libmatch_example_ddddrec libmatch)
 endif ()
