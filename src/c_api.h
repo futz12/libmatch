@@ -36,12 +36,17 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN 
 #include <cstddef>
 
 
-#define COLOR_MASK        0x0000000F
+#define COLOR_MASK          0x0000000F
+#define COLOR_GRAY          0x00000000
+#define COLOR_BGRA          0x00000001
+#define COLOR_BGR           0x00000002
+#define COLOR_BGRA_COLOR    0x00000003
+#define COLOR_BGR_MASK      0x00000004
+#define COLOR_GRAY_MASK     0x00000005
 
-#define COLOR_GRAY         0x00000000
-#define COLOR_BGRA         0x00000001
-#define COLOR_BGR          0x00000002
-#define COLOR_BGRA_COLOR   0x00000003 // 真彩模式
+#define MODEL_MASK          0x000000F0
+#define MODEL_CCOEFF_NORMED 0x00000000
+#define MODEL_SQDIFF_NORMED 0x00000010
 
 struct Rect {
     int x, y, width, height;
@@ -60,8 +65,6 @@ struct objectEx2 {
     struct {
         float x, y;
     } dots[4];
-
-    float prob;
 };
 
 struct TextBox {
@@ -72,22 +75,66 @@ struct TextBox {
     int *charPositions;
 };
 
-struct orb_param {
-    int nfeatures = 500;
-    float scaleFactor = 1.2f;
-    int nlevels = 8;
-    int edgeThreshold = 31;
-    int firstLevel = 0;
-    int WTA_K = 2;
-    int scoreType = 0;
-    int patchSize = 31;
-    int fastThreshold = 20;
-};
-
 struct RecResult {
     char *text;
     int *charPositions;
     float prob;
+};
+
+#define SIFT_MODE  0x00000000
+#define ORB_MODE   0x00000001
+#define AKAZE_MODE 0x00000002
+
+struct feature_config {
+    int detector_type = SIFT_MODE;
+
+    union {
+        struct {
+            int nfeatures;
+            int nOctaveLayers;
+            double contrastThreshold;
+            double edgeThreshold;
+            double sigma;
+        } sift;
+
+        struct {
+            int nfeatures;
+            float scaleFactor;
+            int nlevels;
+            int edgeThreshold;
+            int firstLevel;
+            int WTA_K;
+            int scoreType;
+            int patchSize;
+            int fastThreshold;
+        } orb;
+
+        struct {
+            int descriptor_type;
+            int descriptor_size;
+            int descriptor_channels;
+            int threshold;
+            int nOctaves;
+            int nOctaveLayers;
+            int diffusivity;
+            int max_points;
+        } akaze;
+    } params;
+};
+
+#define MATCHER_FLOAT  0
+#define MATCHER_BINARY 1
+
+struct match_config {
+    int matcher_type = MATCHER_FLOAT;
+    union {
+        int max_hanming_distance;
+        float ratio_thresh;
+    } thresh;
+
+    double ransac_threshold = 5.0; // 重投影误差阈值
+    int min_inliers = 50; // 最小内点数
+    int max_models = 5; // 最大模型数
 };
 
 LIBMATCH_C_API void *create_template_matcher(uint8_t *target_img_data, int target_img_size, uint32_t mode);
@@ -101,21 +148,23 @@ LIBMATCH_C_API void *template_matcher_compute_rect(void *matcher, uint8_t *src_i
                                                    float prob_threshold, float nms_threshold, int sx, int sy, int ex,
                                                    int ey);
 
-LIBMATCH_C_API size_t template_matcher_result_size(void *result);
+LIBMATCH_C_API uint32_t template_matcher_result_size(void *result);
 
 LIBMATCH_C_API void template_matcher_result_get(void *result, size_t index, void *result_obj);
 
 LIBMATCH_C_API void release_template_matcher_result(void *result);
 
-LIBMATCH_C_API void *orb_create_featurer(uint8_t *img_data, int img_size, void *param, int mode);
+LIBMATCH_C_API void *feat_create_detector(uint8_t *input_img_data, int input_img_size, void *config);
 
-LIBMATCH_C_API void orb_release_featurer(void *featurer);
+LIBMATCH_C_API void feat_release_detector(void *detector);
 
-LIBMATCH_C_API void *orb_create_matcher(int mode);
+LIBMATCH_C_API void* feat_match(void *query, void *source, void *result);
 
-LIBMATCH_C_API void orb_release_matcher(void *matcher);
+LIBMATCH_C_API uint32_t feat_match_result_size(void *result);
 
-LIBMATCH_C_API uint32_t orb_matcher_compute(void *matcher, void *source, void *target, float thresh, void *result);
+LIBMATCH_C_API void feat_match_result_get(void *result, size_t index, void *result_obj);
+
+LIBMATCH_C_API void release_feat_match_result(void *result);
 
 LIBMATCH_C_API void *create_ppocr(uint8_t *det_bin, int det_bin_size, char *det_param, uint8_t *rec_bin,
                                   int rec_bin_size, char *rec_param, const char *keylist, int num_thread,
@@ -125,7 +174,7 @@ LIBMATCH_C_API void release_ppocr(void *ppocr);
 
 LIBMATCH_C_API void *ppocr_detect(void *ppocr, uint8_t *src_img_data, int src_img_size);
 
-LIBMATCH_C_API size_t ppocr_result_size(void *result);
+LIBMATCH_C_API uint32_t ppocr_result_size(void *result);
 
 LIBMATCH_C_API void ppocr_get_textbox(void *result, size_t index, void *result_obj);
 

@@ -1,7 +1,7 @@
 #include <opencv2/opencv.hpp>
 #include "library.h"
 
-const char* version = "0.9.6";
+const char* version = "0.9.8";
 
 LIBMATCH_API const char* libmatch_version()
 {

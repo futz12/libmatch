@@ -1,9 +1,16 @@
 cmake_minimum_required(VERSION 3.25)
 project(libmatch)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+
+# if reldebug is enabled, set the optimization level to disable
+if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Od")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /Od")
+endif ()
+
 
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 option(BUILD_EXAMPLES "Build examples" ON)
@@ -65,8 +72,12 @@ endif ()
 
 if(BUILD_EXAMPLES)
     include_directories(src)
-    add_executable(libmatch_example_ddddrec SDK/c_demo/ddddrec.cpp)
+    add_executable(libmatch_example_ddddrec SDK/c_demo/ddddrec.cpp
+            SDK/c_demo/feat.cpp)
     target_link_libraries(libmatch_example_ddddrec libmatch)
+
+    add_executable(libmatch_example_feat SDK/c_demo/feat.cpp)
+    target_link_libraries(libmatch_example_feat libmatch)
 endif ()
 
 target_link_libraries(libmatch ${OpenCV_LIBRARIES})

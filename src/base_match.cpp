@@ -1,297 +1,350 @@
-﻿/*
-The MIT License (MIT)
-Copyright © 2024 <libmatch>
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-and associated documentation files (the “Software”), to deal in the Software without
-restriction, including without limitation the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or
-substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
-BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-*/
-#include <cstdint>
-
+﻿#include "base_algorithm.h"
+#include "base_match.h"
 #include <opencv2/opencv.hpp>
 #include <opencv2/dnn.hpp>
-#include "base_algorithm.h"
-#include "base_match.h"
+
 
 namespace libmatch {
-    template_matcher::template_matcher(uint8_t *target_img_data, int target_img_size, uint32_t mode) {
-        cv::_InputArray target_img_arr(target_img_data, target_img_size);
-        if ((mode & COLOR_MASK) == COLOR_GRAY) {
-            target_mat = cv::imdecode(target_img_arr, cv::IMREAD_GRAYSCALE);
-            READ_OVER();
-        } else if ((mode & COLOR_MASK) == COLOR_BGRA || (mode & COLOR_MASK) == COLOR_BGRA_COLOR) {
-            target_mat = cv::imdecode(target_img_arr, cv::IMREAD_UNCHANGED);
-            READ_OVER();
-            if (target_mat.channels() != 4) {
-                fprintf(stderr, "[Match] Err target_img is not BGRA");
-                return;
-            }
-            cv::Mat bgr[4];
-            cv::split(target_mat, bgr);
-            mask_mat = bgr[3];
-            // 归一化 mask_mat (0 - 1)
-            mask_mat.convertTo(mask_mat, CV_32FC1, 1.0 / 255);
-            if ((mode & COLOR_MASK) == COLOR_BGRA)
-                cv::cvtColor(target_mat, target_mat, cv::COLOR_BGRA2GRAY);
-            else
-                cv::cvtColor(target_mat, target_mat, cv::COLOR_BGRA2BGR);
-        } else if ((mode & COLOR_MASK) == COLOR_BGR) {
-            target_mat = cv::imdecode(target_img_arr, cv::IMREAD_COLOR);
-            READ_OVER();
-        } else if ((mode & COLOR_MASK) == COLOR_BGR_MASK || (mode & COLOR_MASK) == COLOR_GRAY_MASK) {
-            target_mat = cv::imdecode(target_img_arr, cv::IMREAD_COLOR);
-            READ_OVER();
-            // 以左上角的像素作为 mask_color
-            cv::Vec3b mask_color = target_mat.at<cv::Vec3b>(0, 0);
-            // 目标颜色为 mask_color 的部分为 0 其他部分为 1
-            mask_mat = cv::Mat(target_mat.size(), CV_8UC1);
+    using namespace cv;
 
-            for (int i = 0; i < target_mat.rows; i++) {
-                for (int j = 0; j < target_mat.cols; j++) {
-                    cv::Vec3b color = target_mat.at<cv::Vec3b>(i, j);
-                    if (color == mask_color) {
-                        mask_mat.at<uint8_t>(i, j) = 0;
-                    } else {
-                        mask_mat.at<uint8_t>(i, j) = 255;
-                    }
-                }
-            }
-            // cv::imshow("mask", mask_mat);
+    template_matcher::template_matcher(uint8_t *target_img_data,
+                                       int target_img_size,
+                                       uint32_t mode) : _mode(mode) {
+        decode_target(target_img_data, target_img_size);
 
-            if ((mode & COLOR_MASK) == COLOR_GRAY_MASK)
-                cv::cvtColor(target_mat, target_mat, cv::COLOR_BGR2GRAY);
-        } else {
-            fprintf(stderr, "[Match] Err mode");
-            return;
+        // 处理特殊模式
+        switch (mode & COLOR_MASK) {
+            case COLOR_BGRA:
+            case COLOR_BGRA_COLOR:
+                process_alpha_channel();
+                break;
+            case COLOR_BGR_MASK:
+            case COLOR_GRAY_MASK:
+                generate_color_mask();
+                break;
         }
-        _mode = mode;
     }
 
-    std::vector<objectEx>
-    template_matcher::compute(uint8_t *src_img_data, int src_img_size, float prob_threshold, float nms_threshold,
-                              int sx, int sy, int ex, int ey) {
-        cv::Mat src_mat;
-        cv::_InputArray src_img_arr(src_img_data, src_img_size);
-        if ((_mode & COLOR_MASK) == COLOR_GRAY || (_mode & COLOR_MASK) == COLOR_GRAY_MASK) {
-            src_mat = cv::imdecode(src_img_arr, cv::IMREAD_GRAYSCALE);
-            READ_OVER_SRC();
-        } else if ((_mode & COLOR_MASK) == COLOR_BGRA) {
-            src_mat = cv::imdecode(src_img_arr, cv::IMREAD_GRAYSCALE);
-            READ_OVER_SRC();
-        } else if ((_mode & COLOR_MASK) == COLOR_BGR || (_mode & COLOR_MASK) == COLOR_BGRA_COLOR || (_mode & COLOR_MASK)
-                   == COLOR_BGR_MASK) {
-            src_mat = cv::imdecode(src_img_arr, cv::IMREAD_COLOR);
-            READ_OVER_SRC();
+    void template_matcher::decode_target(uint8_t *data, int size) {
+        const int color_flag = [](uint32_t mode) {
+            switch (mode & COLOR_MASK) {
+                case COLOR_GRAY: return cv::IMREAD_GRAYSCALE;
+                case COLOR_BGRA: // 延续处理
+                case COLOR_BGRA_COLOR: return IMREAD_UNCHANGED;
+                default: return IMREAD_COLOR;
+            }
+        }(_mode);
+
+        Mat raw_data(1, size, CV_8UC1, data);
+        target_mat = imdecode(raw_data, color_flag);
+        if (!validate_image(target_mat, "Target image decode failed", nullptr))
+            return;
+    }
+
+    void template_matcher::process_alpha_channel() {
+        if (target_mat.channels() != 4) {
+            fprintf(stderr, "BGRA image requires 4 channels (actual: %d)\n",
+                    target_mat.channels());
+            return;
         }
 
-        if (sx != 0 || sy != 0 || ex != -1 || ey != -1) {
-            if (ex == -1) ex = src_mat.cols;
-            if (ey == -1) ey = src_mat.rows;
+        // 分离alpha通道
+        Mat channels[4];
+        split(target_mat, channels);
+        channels[3].convertTo(mask_mat, CV_32FC1, 1.0f / 255.0f);
 
-            cv::Rect roi(sx - 1, sy - 1, ex - sx + 1, ey - sy + 1);
-            src_mat = src_mat(roi);
+        // 转换颜色空间
+        const int conversion = (_mode & COLOR_MASK) == COLOR_BGRA ? COLOR_BGRA2GRAY : COLOR_BGRA2BGR;
+        cvtColor(target_mat, target_mat, conversion);
+    }
+
+    void template_matcher::generate_color_mask() {
+        const Vec3b mask_color = target_mat.at<Vec3b>(0, 0);
+
+        // 向量化掩码生成
+        Mat mask_8u;
+        inRange(target_mat, Scalar(mask_color), Scalar(mask_color), mask_8u);
+        bitwise_not(mask_8u, mask_8u);
+        mask_8u.convertTo(mask_mat, CV_32FC1, 1.0f / 255.0f);
+
+        // 灰度转换
+        if ((_mode & COLOR_MASK) == COLOR_GRAY_MASK) {
+            cvtColor(target_mat, target_mat, COLOR_BGR2GRAY);
         }
+    }
 
-        // 判断大小是否合法
+    std::vector<objectEx> template_matcher::compute(const uint8_t *src_img_data,
+                                                    int src_img_size,
+                                                    float prob_threshold,
+                                                    float nms_threshold,
+                                                    cv::Rect roi) {
+        // 解码源图像
+        Mat src_mat = imdecode(Mat(1, src_img_size, CV_8UC1,
+                                   const_cast<uint8_t *>(src_img_data)),
+                               [this]() {
+                                   return ((_mode & COLOR_MASK) == COLOR_GRAY ||
+                                           (_mode & COLOR_MASK) == COLOR_GRAY_MASK)
+                                              ? IMREAD_GRAYSCALE
+                                              : IMREAD_COLOR;
+                               }());
+        if (!validate_image(src_mat, "Source image decode failed", nullptr))
+            return {};
+
+        // 设置ROI区域
+        setup_roi(src_mat, roi);
+        if (src_mat.empty()) return {};
+
+        // 尺寸验证
         if (target_mat.cols > src_mat.cols || target_mat.rows > src_mat.rows) {
-            fprintf(stderr, "[Match] Err target_img is bigger than src_img");
+            fprintf(stderr, "Target size (%dx%d) exceeds source ROI (%dx%d)\n",
+                    target_mat.cols, target_mat.rows,
+                    src_mat.cols, src_mat.rows);
             return {};
         }
-        cv::Mat result(src_mat.cols - target_mat.cols + 1, src_mat.rows - target_mat.rows + 1, CV_32FC1);
 
-        if ((_mode & COLOR_MASK) == COLOR_BGRA || (_mode & COLOR_MASK) == COLOR_BGRA_COLOR || (_mode & COLOR_MASK) ==
-            COLOR_BGR_MASK || (_mode & COLOR_MASK) == COLOR_GRAY_MASK) {
-            cv::matchTemplate(src_mat, target_mat, result, cv::TM_CCOEFF_NORMED, mask_mat);
-        } else {
-            cv::matchTemplate(src_mat, target_mat, result, cv::TM_CCOEFF_NORMED);
-        }
+        // 执行模板匹配
+        Mat result;
+        match_template(src_mat, result);
 
-        std::vector<cv::Rect> boxes;
+        // 处理匹配结果
+        std::vector<Rect> boxes;
         std::vector<float> probs;
+        result.forEach<float>([&](float val, const int *pos) {
+            const bool is_valid = (_mode & MODEL_MASK) == MODEL_SQDIFF_NORMED
+                                      ? (val < 1.0f - prob_threshold)
+                                      : (val > prob_threshold);
 
-
-        for (int i = 0; i < result.rows; ++i) {
-            for (int j = 0; j < result.cols; ++j) {
-                float prob = result.at<float>(i, j);
-                if (prob > prob_threshold && prob <= 1.0001) {
-                    boxes.emplace_back(j, i, target_mat.cols, target_mat.rows);
-                    probs.push_back(prob);
-                }
+            if (is_valid) {
+                boxes.emplace_back(pos[1] + roi.x, pos[0] + roi.y,
+                                   target_mat.cols, target_mat.rows);
+                probs.push_back(val);
             }
-        }
+        });
 
-        std::vector<int> picked;
-        cv::dnn::NMSBoxes(boxes, probs, prob_threshold, nms_threshold, picked);
+        // 非极大值抑制
+        std::vector<int> indices;
+        cv::dnn::NMSBoxes(boxes, probs, prob_threshold, nms_threshold, indices);
 
+        // 构建最终结果
         std::vector<objectEx> res;
-        res.reserve(picked.size());
-
-        for (auto x: picked) {
-            objectEx obj;
-            obj.rect = boxes[x];
-            obj.prob = probs[x];
-            res.push_back(obj);
+        res.reserve(indices.size());
+        for (int idx: indices) {
+            res.push_back({boxes[idx], probs[idx]});
         }
 
         return res;
     }
 
-    orb_featurer::orb_featurer(const uint8_t *img_data, int img_size, orb_param param, uint32_t mode) {
-        cv::_InputArray img_arr(img_data, img_size);
-        cv::Mat img_mat = cv::imdecode(img_arr, cv::IMREAD_GRAYSCALE);
-        if (img_mat.empty()) {
-            fprintf(stderr, "[Match] Err Can`t Read Image");
+    void template_matcher::setup_roi(cv::Mat &src, cv::Rect &roi) const {
+        // 自动校正ROI参数
+        if (roi.empty()) {
+            roi = Rect(0, 0, src.cols, src.rows);
             return;
         }
-        m_size = img_mat.size();
-        cv::Ptr<cv::ORB> orb = cv::ORB::create(param.nfeatures, param.scaleFactor, param.nlevels,
-                                               param.edgeThreshold,
-                                               param.firstLevel, param.WTA_K, cv::ORB::ScoreType(param.scoreType),
-                                               param.patchSize,
-                                               param.fastThreshold);
 
-        orb->detectAndCompute(img_mat, cv::noArray(), m_kps, m_desc);
+        // 边界约束
+        roi.x = std::max(roi.x, 0);
+        roi.y = std::max(roi.y, 0);
+        roi.width = std::min(roi.width, src.cols - roi.x);
+        roi.height = std::min(roi.height, src.rows - roi.y);
+
+        if (roi.area() <= 0) {
+            fprintf(stderr, "Invalid ROI: x=%d, y=%d, w=%d, h=%d\n",
+                    roi.x, roi.y, roi.width, roi.height);
+            src = Mat();
+            return;
+        }
+
+        src = src(roi);
     }
 
-    uint32_t orb_matcher::flann_matcher(orb_featurer &source, orb_featurer &target, float thresh,
-                                        objectEx2 *res) {
-        if (source.m_desc.empty() || target.m_desc.empty()) {
-            return 0;
+    void template_matcher::match_template(const cv::Mat &src, cv::Mat &result) const {
+        const int method = (_mode & MODEL_MASK) == MODEL_SQDIFF_NORMED ? TM_SQDIFF_NORMED : TM_CCOEFF_NORMED;
+
+        if (mask_mat.empty()) {
+            ::cv::matchTemplate(src, target_mat, result, method);
+        } else {
+            ::cv::matchTemplate(src, target_mat, result, method, mask_mat);
         }
-        std::vector<std::vector<cv::DMatch> > knn_matches;
+    }
 
-        if (source.m_desc_fp32.empty()) {
-            source.m_desc.convertTo(source.m_desc_fp32, CV_32F);
+    feature_detector::feature_detector(uint8_t *input_img_data,
+                                       int input_img_size,
+                                       feature_config *config) {
+        // 解码输入图像
+        cv::Mat input_image_ = decode_image(input_img_data, input_img_size);
+        if (input_image_.empty()) {
+            throw std::runtime_error("Failed to decode input image");
         }
-        if (target.m_desc_fp32.empty()) {
-            target.m_desc.convertTo(target.m_desc_fp32, CV_32F);
-        }
 
-        matcher->knnMatch(target.m_desc_fp32, source.m_desc_fp32, knn_matches, 2);
-        std::vector<cv::DMatch> good_matches;
+        input_size_ = cv::Size(input_image_.cols, input_image_.rows);
 
-        float prob = 0;
-
-        for (auto &knn_matche: knn_matches) {
-            if (knn_matche[0].distance < thresh * knn_matche[1].distance) {
-                good_matches.push_back(knn_matche[0]);
-                prob += knn_matche[0].distance / knn_matche[1].distance;
+        // 根据配置创建特征检测器
+        switch (config->detector_type) {
+            case SIFT_MODE: {
+                auto &sift_cfg = config->params.sift;
+                auto detector = cv::SIFT::create(
+                    sift_cfg.nfeatures,
+                    sift_cfg.nOctaveLayers,
+                    sift_cfg.contrastThreshold,
+                    sift_cfg.edgeThreshold,
+                    sift_cfg.sigma
+                );
+                detector->detectAndCompute(input_image_, cv::noArray(), keypoints_, descriptors_);
+                break;
             }
+
+            case ORB_MODE: {
+                auto &orb_cfg = config->params.orb;
+                auto detector = cv::ORB::create(
+                    orb_cfg.nfeatures,
+                    orb_cfg.scaleFactor,
+                    orb_cfg.nlevels,
+                    orb_cfg.edgeThreshold,
+                    orb_cfg.firstLevel,
+                    orb_cfg.WTA_K,
+                    (cv::ORB::ScoreType) orb_cfg.scoreType,
+                    orb_cfg.patchSize,
+                    orb_cfg.fastThreshold
+                );
+                detector->detectAndCompute(input_image_, cv::noArray(), keypoints_, descriptors_);
+                break;
+            }
+
+            case AKAZE_MODE: {
+                auto &akaze_cfg = config->params.akaze;
+                auto detector = cv::AKAZE::create(
+                    (cv::AKAZE::DescriptorType) akaze_cfg.descriptor_type,
+                    akaze_cfg.descriptor_size,
+                    akaze_cfg.descriptor_channels,
+                    (cv::KAZE::DiffusivityType) akaze_cfg.threshold,
+                    akaze_cfg.nOctaves,
+                    akaze_cfg.nOctaveLayers,
+                    (cv::KAZE::DiffusivityType) akaze_cfg.diffusivity
+                );
+                detector->detectAndCompute(input_image_, cv::noArray(), keypoints_, descriptors_);
+
+                // 处理最大点数限制
+                if (akaze_cfg.max_points > 0 && keypoints_.size() > static_cast<size_t>(akaze_cfg.max_points)) {
+                    keypoints_.resize(akaze_cfg.max_points);
+                    descriptors_ = descriptors_.rowRange(0, akaze_cfg.max_points);
+                }
+                break;
+            }
+
+            default:
+                throw std::runtime_error("Unsupported detector type");
         }
-
-        if (good_matches.size() < 4) {
-            return 0;
-        }
-
-        prob /= good_matches.size();
-        prob = 1 - prob;
-
-        std::vector<cv::Point> good_target_kps, good_src_kps;
-        for (auto &match: good_matches) {
-            good_target_kps.push_back(target.m_kps[match.queryIdx].pt);
-            good_src_kps.push_back(source.m_kps[match.trainIdx].pt);
-        }
-
-        cv::Mat H = cv::findHomography(good_target_kps, good_src_kps, cv::RANSAC);
-        if (H.empty()) {
-            return 0;
-        }
-
-        std::vector<cv::Point2f> obj_corners(4);
-        obj_corners[0] = cv::Point2f(0, 0);
-        obj_corners[1] = cv::Point2f((float) target.m_size.width, 0);
-        obj_corners[2] = cv::Point2f((float) target.m_size.width, (float) target.m_size.height);
-        obj_corners[3] = cv::Point2f(0, (float) target.m_size.height);
-
-        std::vector<cv::Point2f> scene_corners(4);
-        cv::perspectiveTransform(obj_corners, scene_corners, H);
-
-        for (int i = 0; i < 4; i++) {
-            res->dots[i].x = scene_corners[i].x;
-            res->dots[i].y = scene_corners[i].y;
-        }
-        res->prob = prob;
-
-        return 1;
     }
 
-    uint32_t orb_matcher::hamming_matcher(orb_featurer &source, orb_featurer &target, const float thresh,
-                                          objectEx2 *res) {
-        if (source.m_desc.empty() || target.m_desc.empty()) {
-            return 0;
+    std::vector<std::vector<cv::Point2f> > feature_match(
+        const feature_detector &query,
+        const feature_detector &source,
+        const match_config &config) {
+        // 获取关键点和描述符
+        const auto &kp2 = source.getKeypoints();
+        const auto &desc2 = source.getDescriptors();
+        const auto &kp1 = query.getKeypoints();
+        const auto &desc1 = query.getDescriptors();
+
+        if (kp1.empty() || kp2.empty() || desc1.empty() || desc2.empty()) {
+            return {};
         }
+
         std::vector<cv::DMatch> matches;
-        matcher->match(target.m_desc, source.m_desc, matches);
 
-        std::vector<cv::Point2f> good_src_kps;
-        std::vector<cv::Point2f> good_target_kps;
+        // 根据描述符类型创建匹配器
+        cv::Ptr<cv::DescriptorMatcher> matcher;
 
-        float prob = 0;
+        // 匹配器类型选择
+        switch (config.matcher_type) {
+            case MATCHER_BINARY: {
+                const int norm_type = cv::NORM_HAMMING;
+                matcher = cv::BFMatcher::create(norm_type);
 
-        for (auto &match: matches) {
-            if (match.distance < thresh) {
-                good_src_kps.push_back(source.m_kps[match.trainIdx].pt);
-                good_target_kps.push_back(target.m_kps[match.queryIdx].pt);
-                prob += match.distance / 256;
+                std::vector<cv::DMatch> forward_matches, backward_matches;
+
+                // 双向匹配
+                matcher->match(desc1, desc2, forward_matches);
+                matcher->match(desc2, desc1, backward_matches);
+
+                // 构建反向映射表
+                std::vector<int> reverse_map(desc2.rows, -1);
+                for (size_t i = 0; i < backward_matches.size(); ++i) {
+                    const auto &m = backward_matches[i];
+                    reverse_map[m.trainIdx] = i;
+                }
+
+                // 交叉验证
+                for (const auto &m: forward_matches) {
+                    if (m.trainIdx < 0 || m.trainIdx >= static_cast<int>(reverse_map.size()))
+                        continue;
+
+                    const int reverse_idx = reverse_map[m.queryIdx];
+                    if (reverse_idx == -1) continue;
+
+                    const auto &rm = backward_matches[reverse_idx];
+                    if (rm.trainIdx == m.queryIdx &&
+                        m.distance <= config.thresh.max_hanming_distance &&
+                        rm.distance <= config.thresh.max_hanming_distance) {
+                        matches.push_back(m);
+                    }
+                }
+                break;
             }
+            case MATCHER_FLOAT: {
+                // 浮点描述符使用KD树
+                matcher = cv::makePtr<cv::FlannBasedMatcher>();
+
+                std::vector<std::vector<cv::DMatch> > knn_matches;
+                const int k = 2; // 取前2个最近邻
+                matcher->knnMatch(desc1, desc2, knn_matches, k);
+
+                // 比率测试
+                for (const auto &candidates: knn_matches) {
+                    if (candidates.size() < 2) continue;
+
+                    const auto &best = candidates[0];
+                    const auto &second = candidates[1];
+
+                    // 双重过滤条件
+                    if (best.distance < config.thresh.ratio_thresh * second.distance) {
+                        matches.push_back(best);
+                    }
+                }
+                break;
+            }
+            default:
+                throw std::runtime_error("Unsupported matcher type");
         }
 
-        if (good_src_kps.size() < 4) {
-            return 0;
+        std::vector<cv::Mat> homographies;
+        std::vector<std::vector<uchar> > masks;
+        multi_ransac(matches, kp1, kp2, homographies, masks,
+                     config.ransac_threshold, config.min_inliers, config.max_models);
+
+        // 生成结果四边形
+        std::vector<std::vector<cv::Point2f> > results;
+        const cv::Size query_size = query.getImageSize();
+        const std::vector<cv::Point2f> src_corners = {
+            {0, 0},
+            {float(query_size.width), 0},
+            {float(query_size.width), float(query_size.height)},
+            {0, float(query_size.height)}
+        };
+
+        for (const auto &H: homographies) {
+            std::vector<cv::Point2f> dst_corners(4);
+            cv::perspectiveTransform(src_corners, dst_corners, H);
+
+            // 凸性检查
+            if (!cv::isContourConvex(std::vector<cv::Point2f>(dst_corners.begin(), dst_corners.end()))) {
+                continue;
+            }
+
+            results.push_back(dst_corners);
         }
 
-        prob /= good_src_kps.size();
-        prob = 1 - prob;
-
-        cv::Mat H = cv::findHomography(good_target_kps, good_src_kps,cv::RANSAC);
-        if (H.empty()) {
-            return 0;
-        }
-
-        std::vector<cv::Point2f> obj_corners(4);
-        obj_corners[0] = cv::Point2f(0, 0);
-        obj_corners[1] = cv::Point2f((float) target.m_size.width, 0);
-        obj_corners[2] = cv::Point2f((float) target.m_size.width, (float) target.m_size.height);
-        obj_corners[3] = cv::Point2f(0, (float) target.m_size.height);
-
-        std::vector<cv::Point2f> scene_corners(4);
-        cv::perspectiveTransform(obj_corners, scene_corners, H);
-
-        for (int i = 0; i < 4; i++) {
-            res->dots[i].x = scene_corners[i].x;
-            res->dots[i].y = scene_corners[i].y;
-        }
-        res->prob = prob;
-
-        return 1;
+        return results;
     }
-
-    orb_matcher::orb_matcher(const uint32_t mode) : m_mode(mode) {
-        if (mode == flann) {
-            matcher = cv::FlannBasedMatcher::create();
-        } else {
-            matcher = cv::BFMatcher::create(cv::NORM_HAMMING, true);
-        }
-    }
-
-    uint32_t orb_matcher::match(orb_featurer &source, orb_featurer &target, const float thresh,
-                                objectEx2 *res) {
-        if (m_mode == flann) {
-            return flann_matcher(source, target, thresh, res);
-        } else {
-            return hamming_matcher(source, target, thresh, res);
-        }
-    }
-} // libmatch
+} // namespace libmatch

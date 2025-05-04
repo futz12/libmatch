@@ -24,7 +24,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN 
 #include <fstream>
 #include <iostream>
 
-#include "../../src/c_api.h"
+#include "c_api.h"
 
 char param[] = "../models/ddddrec.param";
 char model[] = "../models/ddddrec.bin";

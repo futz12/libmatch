@@ -1,44 +1,23 @@
-﻿/*
-The MIT License (MIT)
-Copyright © 2024 <libmatch>
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-and associated documentation files (the “Software”), to deal in the Software without
-restriction, including without limitation the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or
-substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
-BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-*/
-
-#ifndef LIBMATCH_BASE_MATCH_H
+﻿#ifndef LIBMATCH_BASE_MATCH_H
 #define LIBMATCH_BASE_MATCH_H
 
+#include <opencv2/core.hpp>
+#include <vector>
+#include <cstdio>
 
 namespace libmatch {
-#define COLOR_MASK        0x0000000F
+    // 保留原始宏定义
+#define COLOR_MASK          0x0000000F
+#define COLOR_GRAY          0x00000000
+#define COLOR_BGRA          0x00000001
+#define COLOR_BGR           0x00000002
+#define COLOR_BGRA_COLOR    0x00000003
+#define COLOR_BGR_MASK      0x00000004
+#define COLOR_GRAY_MASK     0x00000005
 
-#define COLOR_GRAY         0x00000000
-#define COLOR_BGRA         0x00000001
-#define COLOR_BGR          0x00000002
-#define COLOR_BGRA_COLOR   0x00000003 // 真彩模式
-#define COLOR_BGR_MASK     0x00000004 // bgr 模式
-#define COLOR_GRAY_MASK    0x00000005 // gray 模式
-
-#define ORB_PRE_MASK      0x0000000F // orb 预处理模式
-#define ORB_PRE_NONE      0x00000000
-#define ORB_PRE_CANN      0x00000001 // 使用canny边缘检测
-
-#define READ_OVER() if (target_mat.empty()) {fprintf(stderr,"[Match] Err Can`t Read Image");return ;}
-#define READ_OVER_SRC() if (src_mat.empty()) {fprintf(stderr,"[Match] Err Can`t Read Image");return {};}
+#define MODEL_MASK          0x000000F0
+#define MODEL_CCOEFF_NORMED 0x00000000
+#define MODEL_SQDIFF_NORMED 0x00000010
 
     class template_matcher {
     private:
@@ -46,62 +25,126 @@ namespace libmatch {
         cv::Mat mask_mat;
         uint32_t _mode;
 
+        // 统一错误处理函数
+        template<typename T>
+        inline bool validate_image(const cv::Mat &img, const char *context, T ret_val) const {
+            if (!img.empty()) return true;
+
+            fprintf(stderr, "[Match] Error: %s\n"
+                    "  File: %s\n"
+                    "  Line: %d\n"
+                    "  Mode: 0x%08X\n",
+                    context, __FILE__, __LINE__, _mode);
+            return false;
+        }
+
+        // 处理流程分解
+        void decode_target(uint8_t *data, int size);
+
+        void process_alpha_channel();
+
+        void generate_color_mask();
+
+        void setup_roi(cv::Mat &src, cv::Rect &roi) const;
+
+        void match_template(const cv::Mat &src, cv::Mat &result) const;
+
     public:
-        template_matcher(uint8_t *target_img_data, int target_img_size, uint32_t mode);
+        template_matcher(uint8_t *target_img_data,
+                         int target_img_size,
+                         uint32_t mode);
 
-        std::vector<objectEx>
-        compute(uint8_t *src_img_data, int src_img_size, float prob_threshold, float nms_threshold,
-                int sx = 0, int sy = 0, int ex = -1, int ey = -1);
-    }; // 模板匹配匹配子
-
-    struct orb_param {
-        int nfeatures = 500;
-        float scaleFactor = 1.2f;
-        int nlevels = 8;
-        int edgeThreshold = 31;
-        int firstLevel = 0;
-        int WTA_K = 2;
-        int scoreType = 0;
-        int patchSize = 31;
-        int fastThreshold = 20;
+        std::vector<objectEx> compute(const uint8_t *src_img_data,
+                                      int src_img_size,
+                                      float prob_threshold = 0.6f,
+                                      float nms_threshold = 0.4f,
+                                      cv::Rect roi = cv::Rect());
     };
 
-    // orb 特征子
-    class orb_featurer {
+#define SIFT_MODE  0x00000000
+#define ORB_MODE   0x00000001
+#define AKAZE_MODE 0x00000002
+
+
+    struct feature_config {
+        int detector_type = SIFT_MODE;
+
+        union {
+            struct {
+                int nfeatures = 0;
+                int nOctaveLayers = 3;
+                double contrastThreshold = 0.04;
+                double edgeThreshold = 10;
+                double sigma = 1.6;
+            } sift;
+
+            struct {
+                int nfeatures = 500;
+                float scaleFactor = 1.2f;
+                int nlevels = 8;
+                int edgeThreshold = 31;
+                int firstLevel = 0;
+                int WTA_K = 2;
+                int scoreType = cv::ORB::HARRIS_SCORE;
+                int patchSize = 31;
+                int fastThreshold = 20;
+            } orb;
+
+            struct {
+                int descriptor_type = cv::AKAZE::DESCRIPTOR_MLDB;
+                int descriptor_size = 0;
+                int descriptor_channels = 3;
+                int threshold = 0.001f;
+                int nOctaves = 4;
+                int nOctaveLayers = 4;
+                int diffusivity = cv::KAZE::DIFF_PM_G2;
+                int max_points = -1;
+            } akaze;
+        } params;
+    };
+
+    class feature_detector {
     private:
-        std::vector<cv::KeyPoint> m_kps;
-        cv::Mat m_desc;
-        cv::Mat m_desc_fp32;
-        cv::Size m_size;
-        friend class orb_matcher;
+        std::vector<cv::KeyPoint> keypoints_;
+        cv::Mat descriptors_;
+        cv::Size input_size_;
+
+        // 图像解码方法
+        static cv::Mat decode_image(uint8_t *data, int size) {
+            cv::_InputArray arr(data, size);
+            return cv::imdecode(arr, cv::IMREAD_GRAYSCALE);
+        }
 
     public:
-        orb_featurer(const uint8_t *img_data, int img_size, orb_param param, uint32_t mode);
+        feature_detector(uint8_t *input_img_data,
+                         int input_img_size,
+                         feature_config *config);
+
+        // 获取特征检测结果
+        const std::vector<cv::KeyPoint> &getKeypoints() const { return keypoints_; }
+        const cv::Mat &getDescriptors() const { return descriptors_; }
+        const cv::Size &getImageSize() const { return input_size_; }
     };
 
-    enum match_mode {
-        flann = 0,
-        hamming = 1,
+    // 宏定义匹配器类型
+#define MATCHER_FLOAT  0
+#define MATCHER_BINARY 1
+
+    struct match_config {
+        int matcher_type = MATCHER_FLOAT;
+        union {
+            int max_hanming_distance;
+            float ratio_thresh;
+        } thresh;
+
+        double ransac_threshold = 5.0; // 重投影误差阈值
+        int min_inliers = 50; // 最小内点数
+        int max_models = 5; // 最大模型数
     };
 
-    //orb 匹配器
-    class orb_matcher {
-    private:
-        uint32_t m_mode{};
-        cv::Ptr<cv::DescriptorMatcher> matcher;
-
-        uint32_t flann_matcher(orb_featurer &source, orb_featurer &target, float thresh,
-                               objectEx2 *res);
-
-        uint32_t hamming_matcher(orb_featurer &source, orb_featurer &target, float thresh,
-                                 objectEx2 *res);
-
-    public:
-        explicit orb_matcher(uint32_t mode);
-
-        uint32_t match(orb_featurer &source,orb_featurer &target, float thresh,
-                       objectEx2 *res);
-    };
-} // libmatch
-
-#endif //LIBMATCH_BASE_MATCH_H
+    std::vector<std::vector<cv::Point2f> > feature_match(
+        const feature_detector &query,
+        const feature_detector &source,
+        const match_config &config);
+} // namespace libmatch
+#endif // LIBMATCH_BASE_MATCH_H

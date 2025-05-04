@@ -59,6 +59,7 @@
 #include <functional>
 #include <cmath>
 #include <queue>
+#include <algorithm>
 
 namespace ClipperLib {
 

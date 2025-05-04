@@ -51,10 +51,10 @@ template_matcher_compute_rect(void *matcher, uint8_t *src_img_data, int src_img_
                               float nms_threshold, int sx, int sy, int ex, int ey) {
     return new std::vector<libmatch::objectEx>(
         ((libmatch::template_matcher *) matcher)->compute(src_img_data, src_img_size, prob_threshold, nms_threshold,
-                                                          sx, sy, ex, ey));
+                                                          {sx, sy, ex, ey}));
 }
 
-LIBMATCH_C_API size_t template_matcher_result_size(void *result) {
+LIBMATCH_C_API uint32_t template_matcher_result_size(void *result) {
     return ((std::vector<libmatch::objectEx> *) result)->size();
 }
 
@@ -65,32 +65,6 @@ LIBMATCH_C_API void template_matcher_result_get(void *result, size_t index, void
 
 LIBMATCH_C_API void release_template_matcher_result(void *result) {
     delete (std::vector<libmatch::objectEx> *) result;
-}
-
-LIBMATCH_C_API void *orb_create_featurer(uint8_t *img_data, int img_size, void *param, int mode) {
-    if (param == nullptr) {
-        // default param
-        return new libmatch::orb_featurer(img_data, img_size, libmatch::orb_param(), mode);
-    }
-    return new libmatch::orb_featurer(img_data, img_size, *(libmatch::orb_param *) param, mode);
-}
-
-LIBMATCH_C_API void orb_release_featurer(void *featurer) {
-    delete (libmatch::orb_featurer *) featurer;
-}
-
-LIBMATCH_C_API void *orb_create_matcher(int mode) {
-    return new libmatch::orb_matcher(mode);
-}
-
-LIBMATCH_C_API void orb_release_matcher(void *matcher) {
-    delete (libmatch::orb_matcher *) matcher;
-}
-
-LIBMATCH_C_API uint32_t orb_matcher_compute(void *matcher, void *source, void *target, float thresh, void *result) {
-    return ((libmatch::orb_matcher *) matcher)->match(*(libmatch::orb_featurer *) source,
-                                                      *(libmatch::orb_featurer *) target, thresh,
-                                                      (libmatch::objectEx2 *) result);
 }
 
 LIBMATCH_C_API void *
@@ -118,7 +92,7 @@ LIBMATCH_C_API void *ppocr_detect(void *ppocr, uint8_t *src_img_data, int src_im
     return new std::vector<libmatch::TextBox>(((libmatch::ppocr *) ppocr)->detect(src));
 }
 
-LIBMATCH_C_API size_t ppocr_result_size(void *result) {
+LIBMATCH_C_API uint32_t ppocr_result_size(void *result) {
     return ((std::vector<libmatch::TextBox> *) result)->size();
 }
 
@@ -190,4 +164,45 @@ LIBMATCH_C_API void release_ddddrec_result(void *result) {
 
 LIBMATCH_C_API void unregister_vulkan() {
     ncnn::destroy_gpu_instance();
+}
+
+LIBMATCH_C_API void *feat_create_detector(uint8_t *input_img_data, int input_img_size, void *config) {
+    return new libmatch::feature_detector(input_img_data, input_img_size, (libmatch::feature_config *) config);
+}
+
+LIBMATCH_C_API void feat_release_detector(void *detector) {
+    delete detector;
+}
+
+LIBMATCH_C_API void *feat_match(void *query, void *source, void *result) {
+    libmatch::feature_detector *detector_query = (libmatch::feature_detector *) query;
+    libmatch::feature_detector *detector_source = (libmatch::feature_detector *) source;
+
+    std::vector<std::vector<cv::Point2f> > results;
+    results = libmatch::feature_match(*detector_query, *detector_source,
+                                      *(libmatch::match_config *) result);
+
+    std::vector<objectEx2> *ret = new std::vector<objectEx2>(results.size());
+
+    for (int i = 0; i < results.size(); i++) {
+        for (int j = 0; j < 4; j++) {
+            (*ret)[i].dots[j].x = results[i][j].x;
+            (*ret)[i].dots[j].y = results[i][j].y;
+        }
+    }
+
+    return ret;
+}
+
+LIBMATCH_C_API uint32_t feat_match_result_size(void *result) {
+    return ((std::vector<objectEx2> *) result)->size();
+}
+
+LIBMATCH_C_API void feat_match_result_get(void *result, size_t index, void *result_obj) {
+    auto &obj = (*((std::vector<objectEx2> *) result))[index];
+    memcpy(result_obj, &obj, sizeof(objectEx2));
+}
+
+LIBMATCH_C_API void release_feat_match_result(void *result) {
+    delete ((std::vector<objectEx2> *) result);
 }
