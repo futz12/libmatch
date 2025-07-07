@@ -1,0 +1,6 @@
+[submodule "3rdpart/MNN"]
+	path = 3rdpart/MNN
+	url = https://github.com/alibaba/MNN
+[submodule "3rdpart/opencv"]
+	path = 3rdpart/opencv
+	url = https://github.com/opencv/opencv/
